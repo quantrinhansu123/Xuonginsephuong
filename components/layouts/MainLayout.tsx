@@ -211,22 +211,22 @@ export default function MainLayout({ children, portal }: MainLayoutProps) {
             />
             <Breadcrumb 
               items={getBreadcrumbs()} 
-              className="hidden md:block font-medium text-slate-500"
+              className="hidden md:flex items-center font-medium text-slate-500 h-full pt-1"
             />
           </div>
-          <div className="flex items-center gap-6">
-            <div className="text-right hidden sm:block">
-              <div className="font-bold text-slate-800 text-sm leading-tight">{user.full_name || user.username}</div>
-              <div className="text-[10px] text-indigo-500 font-black uppercase tracking-wider">{user.role?.name}</div>
+          <div className="flex items-center gap-5">
+            <div className="hidden sm:flex flex-col items-end justify-center h-full pt-1">
+              <div className="font-bold text-slate-800 text-[14px] leading-none mb-1.5">{user.full_name || user.username}</div>
+              <div className="text-[10px] text-indigo-500 font-black uppercase tracking-widest leading-none">{user.role?.name}</div>
             </div>
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight" arrow>
-              <div className="relative group cursor-pointer">
+              <div className="relative group cursor-pointer flex items-center">
                 <Avatar 
-                  size={44} 
+                  size={46} 
                   icon={<UserOutlined />} 
-                  className="bg-indigo-50 text-indigo-600 border-2 border-transparent group-hover:border-indigo-100 transition-all" 
+                  className="bg-indigo-50 text-indigo-600 border-2 border-white shadow-sm group-hover:border-indigo-100 transition-all" 
                 />
-                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full"></div>
+                <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-emerald-500 border-2 border-white rounded-full shadow-sm"></div>
               </div>
             </Dropdown>
           </div>
