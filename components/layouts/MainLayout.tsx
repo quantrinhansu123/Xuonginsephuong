@@ -162,34 +162,105 @@ export default function MainLayout({ children, portal }: MainLayoutProps) {
   if (!user) return null;
 
   return (
-    <Layout className="min-h-screen">
-      <Sider trigger={null} collapsible collapsed={collapsed} theme="light" className="shadow-sm border-r" width={250}>
-        <div className="p-4 flex items-center justify-center mb-4 transition-all duration-300">
-          <div className={`bg-blue-600 rounded-xl flex items-center justify-center shadow-lg ${collapsed ? 'w-10 h-10' : 'w-12 h-12 mr-3'}`}>
-            <PrinterOutlined className="text-white text-xl" />
+    <Layout className="min-h-screen bg-slate-50">
+      <Sider 
+        trigger={null} 
+        collapsible 
+        collapsed={collapsed} 
+        theme="light" 
+        className="premium-sidebar border-none shadow-2xl z-20" 
+        width={260}
+        style={{ 
+          position: 'sticky', 
+          top: 0, 
+          height: '100vh', 
+          left: 0,
+          background: '#ffffff'
+        }}
+      >
+        <div className={`flex items-center p-6 mb-2 ${collapsed ? 'justify-center' : 'justify-start'}`}>
+          <div className="bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg w-12 h-12 shrink-0">
+            <PrinterOutlined className="text-white text-2xl" />
           </div>
-          {!collapsed && <Title level={4} className="m-0 text-blue-600 font-bold overflow-hidden whitespace-nowrap">PPMS</Title>}
+          {!collapsed && (
+            <div className="ml-4 overflow-hidden">
+              <div className="text-indigo-600 font-black text-xl tracking-tighter">PPMS</div>
+              <div className="text-[10px] text-slate-400 font-bold tracking-widest uppercase">Production</div>
+            </div>
+          )}
         </div>
-        <Menu theme="light" mode="inline" selectedKeys={[pathname]} items={menuItems} className="border-none px-2" />
+        <Menu 
+          theme="light" 
+          mode="inline" 
+          selectedKeys={[pathname]} 
+          items={menuItems} 
+          className="border-none px-3 sidebar-menu" 
+        />
       </Sider>
-      <Layout>
-        <Header className="p-0 bg-white flex items-center justify-between px-6 shadow-sm z-10" style={{ height: 64 }}>
-          <div className="flex items-center">
-            <Button type="text" icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />} onClick={() => setCollapsed(!collapsed)} className="w-10 h-10 mr-4" />
-            <Breadcrumb items={getBreadcrumbs()} />
+      <Layout className="bg-transparent">
+        <Header 
+          className="sticky top-0 p-0 flex items-center justify-between px-8 z-10 transition-all duration-300 glass-header" 
+          style={{ height: 72, background: 'rgba(248, 250, 252, 0.8)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(226, 232, 240, 0.5)' }}
+        >
+          <div className="flex items-center gap-4">
+            <Button 
+              type="text" 
+              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />} 
+              onClick={() => setCollapsed(!collapsed)} 
+              className="w-10 h-10 flex items-center justify-center hover:bg-slate-100 rounded-xl" 
+            />
+            <Breadcrumb 
+              items={getBreadcrumbs()} 
+              className="hidden md:block font-medium text-slate-500"
+            />
           </div>
-          <div className="flex items-center">
-            <div className="mr-4 text-right hidden sm:block">
-              <div className="font-medium text-sm">{user.full_name || user.username}</div>
-              <div className="text-xs text-gray-400">{user.role?.name} - {user.department?.name}</div>
+          <div className="flex items-center gap-6">
+            <div className="text-right hidden sm:block">
+              <div className="font-bold text-slate-800 text-sm leading-tight">{user.full_name || user.username}</div>
+              <div className="text-[10px] text-indigo-500 font-black uppercase tracking-wider">{user.role?.name}</div>
             </div>
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight" arrow>
-              <Avatar size="large" icon={<UserOutlined />} className="bg-blue-100 text-blue-600 cursor-pointer" />
+              <div className="relative group cursor-pointer">
+                <Avatar 
+                  size={44} 
+                  icon={<UserOutlined />} 
+                  className="bg-indigo-50 text-indigo-600 border-2 border-transparent group-hover:border-indigo-100 transition-all" 
+                />
+                <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full"></div>
+              </div>
             </Dropdown>
           </div>
         </Header>
-        <Content className="m-6 p-6 bg-white rounded-xl shadow-sm overflow-auto" style={{ minHeight: 280 }}>{children}</Content>
+        <Content className="m-8 animate-in">
+          <div className="min-h-[calc(100vh-136px)]">
+            {children}
+          </div>
+        </Content>
       </Layout>
+
+      <style jsx global>{`
+        .sidebar-menu.ant-menu-inline { border-inline-end: none !important; }
+        .sidebar-menu .ant-menu-item { 
+          margin-block: 8px !important; 
+          border-radius: 14px !important;
+          height: 48px !important;
+          line-height: 48px !important;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        }
+        .sidebar-menu .ant-menu-item-selected {
+          background-color: #6366f1 !important;
+          color: white !important;
+          box-shadow: 0 10px 20px rgba(99, 102, 241, 0.2) !important;
+        }
+        .sidebar-menu .ant-menu-item-selected a { color: white !important; }
+        .sidebar-menu .ant-menu-item:hover:not(.ant-menu-item-selected) {
+          background-color: #f1f5f9 !important;
+        }
+        .premium-sidebar .ant-menu-submenu-title {
+          border-radius: 14px !important;
+          margin-block: 8px !important;
+        }
+      `}</style>
     </Layout>
   );
 }
