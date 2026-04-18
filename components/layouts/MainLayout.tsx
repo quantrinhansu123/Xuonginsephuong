@@ -159,6 +159,18 @@ export default function MainLayout({ children, portal }: MainLayoutProps) {
     });
   };
 
+  const [openKeys, setOpenKeys] = useState<string[]>([]);
+  const rootSubmenuKeys = ['organization', 'config'];
+
+  const onOpenChange = (keys: string[]) => {
+    const latestOpenKey = keys.find((key) => openKeys.indexOf(key) === -1);
+    if (latestOpenKey && rootSubmenuKeys.indexOf(latestOpenKey) === -1) {
+      setOpenKeys(keys);
+    } else {
+      setOpenKeys(latestOpenKey ? [latestOpenKey] : []);
+    }
+  };
+
   if (!user) return null;
 
   return (
@@ -175,27 +187,34 @@ export default function MainLayout({ children, portal }: MainLayoutProps) {
           top: 0, 
           height: '100vh', 
           left: 0,
-          background: '#ffffff'
+          background: '#ffffff',
+          display: 'flex',
+          flexDirection: 'column'
         }}
       >
-        <div className={`flex items-center p-6 mb-2 ${collapsed ? 'justify-center' : 'justify-start'}`}>
+        <div className={`flex items-center p-6 ${collapsed ? 'justify-center' : 'justify-start'}`}>
           <div className="bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg w-12 h-12 shrink-0">
             <PrinterOutlined className="text-white text-2xl" />
           </div>
           {!collapsed && (
             <div className="ml-4 overflow-hidden">
-              <div className="text-indigo-600 font-black text-xl tracking-tighter">PPMS</div>
-              <div className="text-[10px] text-slate-400 font-bold tracking-wider uppercase">Production</div>
+              <div className="text-indigo-600 font-black text-xl tracking-tighter leading-none">PPMS</div>
+              <div className="text-[10px] text-slate-400 font-bold tracking-wider uppercase mt-1">Production</div>
             </div>
           )}
         </div>
-        <Menu 
-          theme="light" 
-          mode="inline" 
-          selectedKeys={[pathname]} 
-          items={menuItems} 
-          className="border-none px-3 sidebar-menu" 
-        />
+        
+        <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar pb-6 px-3">
+          <Menu 
+            theme="light" 
+            mode="inline" 
+            selectedKeys={[pathname]} 
+            openKeys={openKeys}
+            onOpenChange={onOpenChange}
+            items={menuItems} 
+            className="border-none sidebar-menu" 
+          />
+        </div>
       </Sider>
       <Layout className="bg-transparent">
         <Header 
@@ -259,6 +278,20 @@ export default function MainLayout({ children, portal }: MainLayoutProps) {
         .premium-sidebar .ant-menu-submenu-title {
           border-radius: 14px !important;
           margin-block: 8px !important;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: #e2e8f0;
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #cbd5e1;
         }
       `}</style>
     </Layout>

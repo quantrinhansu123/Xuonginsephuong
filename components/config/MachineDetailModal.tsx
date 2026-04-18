@@ -261,13 +261,25 @@ export default function MachineDetailModal({ visible, machine, departments, onCl
 
   return (
     <Modal
-      title={machine ? `Máy: ${machine.name}` : 'Thêm Máy mới'}
+      title={
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl"><ToolOutlined /></div>
+          <div>
+            <div className="text-lg font-black text-slate-900 leading-tight uppercase">{machine ? 'CHI TIẾT MÁY MÓC' : 'THÊM MÁY MỚI'}</div>
+            <Text className="premium-label text-slate-400">Equipment Configuration</Text>
+          </div>
+        </div>
+      }
       open={visible}
       onCancel={onClose}
       footer={null}
       width={900}
+      centered
+      className="premium-modal no-padding-body"
     >
-      <Tabs defaultActiveKey="1" items={tabItems} destroyOnHidden />
+      <div className="p-0">
+        <Tabs defaultActiveKey="1" items={tabItems} destroyOnHidden centered className="premium-tabs-layout" />
+      </div>
     </Modal>
   );
 }

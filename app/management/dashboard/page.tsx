@@ -376,7 +376,7 @@ export default function DashboardPage() {
           columns={viewMode === 'Kanban' ? columns : ganttColumns}
           dataSource={data}
           rowKey="id"
-          pagination={{ pageSize: 10, position: ['bottomCenter'] }}
+          pagination={{ pageSize: 10, placement: 'bottomCenter' }}
           scroll={{ x: 'max-content', y: 600 }}
           className="designer-table"
           loading={loading}

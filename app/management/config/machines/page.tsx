@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  Table, Button, Space, Card, Typography, message, Tag, Select, Popconfirm
+  Table, Button, Space, Card, Typography, message, Tag, Select, Popconfirm, Badge
 } from 'antd';
 import { 
   ToolOutlined, 
@@ -113,31 +113,36 @@ export default function MachinesPage() {
       title: 'Bộ phận',
       dataIndex: ['departments', 'name'],
       key: 'department',
+      render: (t: string) => <Text className="font-medium text-slate-600">{t}</Text>
+    },
+    {
+      title: 'Sản xuất',
+      key: 'mfg_year',
+      render: () => <Text className="font-mono text-slate-400">2023</Text>
+    },
+    {
+      title: 'Bảo trì',
+      key: 'last_maint',
+      render: () => <Text className="text-[11px] font-bold text-slate-400 uppercase">12/04/2024</Text>
     },
     {
       title: 'Trạng thái',
       dataIndex: 'status',
       key: 'status',
-      render: (status: string, record: any) => (
-        <Select 
-          value={status} 
-          size="small"
-          style={{ width: 120 }}
-          onChange={(value) => handleToggleStatus(record.id, value)}
-        >
-          <Option value="active"><Tag color="green">Hoạt động</Tag></Option>
-          <Option value="maintenance"><Tag color="orange">Bảo trì</Tag></Option>
-          <Option value="inactive"><Tag color="red">Ngưng</Tag></Option>
-        </Select>
-      ),
+      render: (status: string, record: any) => {
+        const colors: any = { active: 'success', maintenance: 'warning', inactive: 'default' };
+        const labels: any = { active: 'HOẠT ĐỘNG', maintenance: 'BẢO TRÌ', inactive: 'NGƯNG' };
+        return <Badge status={colors[status]} text={<Text className="text-[10px] font-bold text-slate-500 uppercase">{labels[status]}</Text>} />;
+      },
     },
     {
       title: 'Thao tác',
       key: 'action',
-      width: 80,
+      width: 100,
+      align: 'right' as const,
       render: (_: any, record: any) => (
         <Space>
-          <Button type="text" icon={<EditOutlined />} onClick={() => handleAddEdit(record)} />
+          <Button type="text" icon={<EditOutlined className="text-slate-400" />} onClick={() => handleAddEdit(record)} />
           <Popconfirm title="Xóa máy này?" onConfirm={() => handleDelete(record.id)} okText="Xóa" cancelText="Hủy">
             <Button type="text" danger icon={<DeleteOutlined />} />
           </Popconfirm>
@@ -178,7 +183,7 @@ export default function MachinesPage() {
           rowKey="id" 
           loading={loading} 
           className="designer-table"
-          pagination={{ pageSize: 12, position: ['bottomCenter'] }}
+          pagination={{ pageSize: 12, placement: 'bottomCenter' }}
         />
       </div>
 

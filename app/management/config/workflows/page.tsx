@@ -179,7 +179,7 @@ export default function WorkflowsPage() {
           rowKey="id" 
           loading={loading} 
           className="designer-table"
-          pagination={{ pageSize: 12, position: ['bottomCenter'] }}
+          pagination={{ pageSize: 12, placement: 'bottomCenter' }}
         />
       </div>
 

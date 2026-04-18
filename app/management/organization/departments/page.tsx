@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Space, Card, Typography, message, Tag, Switch, Popconfirm } from 'antd';
+import { Table, Button, Space, Card, Typography, message, Tag, Switch, Popconfirm, Badge } from 'antd';
 import { PlusOutlined, EditOutlined, AppstoreOutlined, ReloadOutlined, DeleteOutlined } from '@ant-design/icons';
 import { supabase } from '@/lib/supabase';
 import { clearCache } from '@/lib/auth';
@@ -87,7 +87,7 @@ export default function DepartmentsPage() {
       title: 'Đầu vào',
       dataIndex: 'is_entry_point',
       key: 'is_entry_point',
-      render: (v: boolean) => v ? <Tag color="green">Có thể nhận việc đầu</Tag> : <Tag>Không</Tag>,
+      render: (v: boolean) => v ? <Tag color="green" className="rounded-lg border-none font-bold px-3 py-0.5 uppercase text-[10px]">TIẾP NHẬN LSX</Tag> : <Tag className="rounded-lg border-none font-bold px-3 py-0.5 uppercase text-[10px]">NỘI BỘ</Tag>,
     },
     {
       title: 'Quyền hạn',
@@ -95,21 +95,26 @@ export default function DepartmentsPage() {
       key: 'permissions',
       render: (perms: string[]) => (
         <Space size={2} wrap>
-          {perms?.map(p => {
+          {perms?.length > 0 ? perms.map(p => {
             const perm = AVAILABLE_PERMISSIONS.find(ap => ap.value === p);
-            return <Tag key={p}>{perm?.label || p}</Tag>;
-          })}
+            return <Tag key={p} className="rounded-md border-slate-100 text-[11px] px-2">{perm?.label || p}</Tag>;
+          }) : <Text className="text-slate-300 italic text-[11px]">Không có quyền</Text>}
         </Space>
       ),
     },
     {
+      title: 'Trạng thái',
+      key: 'status',
+      render: () => <Badge status="processing" text={<Text className="text-[10px] font-bold text-blue-500 uppercase">ĐANG VẬN HÀNH</Text>} />,
+    },
+    {
       title: 'Thao tác',
       key: 'action',
-      width: 80,
+      width: 100,
       align: 'right' as const,
       render: (_: any, record: any) => (
         <Space>
-          <Button type="text" icon={<EditOutlined />} onClick={() => handleAddEdit(record)} />
+          <Button type="text" icon={<EditOutlined className="text-slate-400" />} onClick={() => handleAddEdit(record)} />
           <Popconfirm title="Xóa bộ phận này?" onConfirm={() => handleDelete(record.id)} okText="Xóa" cancelText="Hủy">
             <Button type="text" danger icon={<DeleteOutlined />} />
           </Popconfirm>
@@ -119,21 +124,40 @@ export default function DepartmentsPage() {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-8 max-w-[1600px] mx-auto animate-in">
+      <div className="flex justify-between items-end">
         <div>
-          <Title level={3} className="m-0"><AppstoreOutlined /> Quản lý Bộ phận</Title>
-          <Text type="secondary">Cấu hình các bộ phận sản xuất trong xưởng</Text>
+          <Title level={2} className="m-0 font-black tracking-tight text-slate-900">
+            MASTER <span className="text-indigo-600">DEPARTMENTS</span>
+          </Title>
+          <div className="flex items-center gap-2 mt-2">
+            <div className="h-1 w-8 bg-indigo-600 rounded-full" />
+            <Text className="premium-label text-slate-400">Cấu hình hệ thống bộ phận • Phân quyền & Luồng vận hành</Text>
+          </div>
         </div>
-        <Space>
-          <Button icon={<ReloadOutlined />} onClick={fetchDepartments}>Làm mới</Button>
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => handleAddEdit()}>Thêm Bộ phận</Button>
-        </Space>
+        <div className="flex items-center gap-3">
+          <Button icon={<ReloadOutlined />} onClick={fetchDepartments} className="h-12 w-12 rounded-2xl border-slate-200 flex items-center justify-center text-xl" />
+          <Button 
+            type="primary" 
+            icon={<PlusOutlined />} 
+            onClick={() => handleAddEdit()}
+            className="h-12 px-8 rounded-2xl font-bold bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200 shadow-lg border-none"
+          >
+            THÊM BỘ PHẬN
+          </Button>
+        </div>
       </div>
 
-      <Card className="shadow-sm">
-        <Table columns={columns} dataSource={data} rowKey="id" loading={loading} pagination={false} />
-      </Card>
+      <div className="premium-shadow rounded-[32px] overflow-hidden bg-white border border-slate-100">
+        <Table 
+          columns={columns} 
+          dataSource={data} 
+          rowKey="id" 
+          loading={loading} 
+          className="designer-table"
+          pagination={false}
+        />
+      </div>
 
       <DepartmentDetailModal
         visible={modalVisible}

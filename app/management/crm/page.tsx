@@ -294,7 +294,7 @@ export default function CrmPage() {
           dataSource={filteredData} 
           rowKey="id" 
           loading={loading}
-          pagination={{ pageSize: 12, position: ['bottomCenter'] }}
+          pagination={{ pageSize: 12, placement: 'bottomCenter' }}
           className="designer-table"
           scroll={{ x: 'max-content' }}
         />

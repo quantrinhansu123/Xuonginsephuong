@@ -150,39 +150,50 @@ export default function TasksPage() {
       dataIndex: 'status',
       key: 'status',
       render: (status: string) => {
-        let color = 'default';
-        let icon = <ClockCircleOutlined />;
-        if (status === 'ready') { color = 'processing'; icon = <ThunderboltOutlined />; }
-        if (status === 'in_progress') { color = 'blue'; icon = <ReloadOutlined spin />; }
-        if (status === 'done') { color = 'success'; icon = <CheckCircleOutlined />; }
-        if (status === 'issue') { color = 'error'; icon = <WarningOutlined />; }
-        if (status === 'on_hold') { color = 'warning'; icon = <ClockCircleOutlined />; }
-        return <Tag color={color} icon={icon}>{status.toUpperCase()}</Tag>;
+        const configs: any = {
+          ready: { color: 'cyan', icon: <ThunderboltOutlined />, label: 'SẴN SÀNG' },
+          in_progress: { color: 'blue', icon: <ReloadOutlined spin />, label: 'ĐANG LÀM' },
+          done: { color: 'emerald', icon: <CheckCircleOutlined />, label: 'HOÀN TẤT' },
+          issue: { color: 'rose', icon: <WarningOutlined />, label: 'SỰ CỐ' },
+          on_hold: { color: 'amber', icon: <ClockCircleOutlined />, label: 'TẠM HOÃN' }
+        };
+        const cfg = configs[status] || { color: 'slate', icon: <ClockCircleOutlined />, label: status.toUpperCase() };
+        return (
+          <Tag color={cfg.color} icon={cfg.icon} className="rounded-lg border-none font-bold px-3 py-1 flex items-center w-fit gap-1">
+            {cfg.label}
+          </Tag>
+        );
       },
     },
     {
-      title: 'Cập nhật cuối',
+      title: 'Cập nhật',
       dataIndex: 'updated_at',
       key: 'updated_at',
-      render: (date: string) => new Date(date).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' }),
+      render: (date: string) => <Text className="text-slate-500 font-medium">{new Date(date).toLocaleString('vi-VN', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit' })}</Text>,
     },
     {
       title: 'Thao tác',
       key: 'action',
       fixed: 'right' as const,
-      width: 120,
+      width: 140,
       render: (_: any, record: any) => (
         <Button 
           type="primary" 
           icon={<EyeOutlined />} 
-          size="small"
           onClick={() => { setSelectedTask(record); setActionModalVisible(true); }}
+          className={`font-bold rounded-xl border-none shadow-sm ${record.department_id === user.department_id ? 'bg-indigo-600' : 'bg-rose-600'}`}
         >
-          {record.department_id === user.department_id ? 'Xử lý' : 'Giải quyết vật tư'}
+          {record.department_id === user.department_id ? 'XỬ LÝ' : 'VẬT TƯ'}
         </Button>
       ),
     },
   ];
+
+  const stats = {
+    ready: data.filter(t => t.status === 'ready').length,
+    active: data.filter(t => t.status === 'in_progress').length,
+    issues: data.filter(t => t.status === 'issue' || t.material_shortage).length
+  };
 
   return (
     <div className="space-y-8 max-w-[1600px] mx-auto animate-in">
@@ -203,6 +214,28 @@ export default function TasksPage() {
           <Button icon={<ReloadOutlined />} onClick={fetchTasks} loading={loading} className="h-12 w-12 flex items-center justify-center rounded-2xl border-slate-200" />
         </div>
       </div>
+
+      <Row gutter={[24, 24]}>
+        {[
+          { title: "SẴN SÀNG", value: stats.ready, icon: <ThunderboltOutlined />, color: "cyan" },
+          { title: "ĐANG LÀM", value: stats.active, icon: <ReloadOutlined />, color: "blue", spin: true },
+          { title: "SỰ CỐ / THIẾU VT", value: stats.issues, icon: <WarningOutlined />, color: "rose", highlight: stats.issues > 0 }
+        ].map((stat, idx) => (
+          <Col span={8} key={idx}>
+            <div className={`ui-surface p-6 flex items-center justify-between border-none ${stat.highlight ? 'animate-pulse-subtle border-l-4 border-rose-500 shadow-rose-100 shadow-lg' : ''}`}>
+              <div className="flex flex-col">
+                <Text className="premium-label mb-1 uppercase whitespace-nowrap">{stat.title}</Text>
+                <span className={`text-4xl font-black tracking-tighter ${stat.highlight ? 'text-rose-600' : 'text-slate-900'} leading-none`}>
+                  {stat.value}
+                </span>
+              </div>
+              <div className={`p-4 rounded-2xl bg-${stat.color}-50 text-${stat.color}-600 text-2xl shadow-sm border border-${stat.color}-100 flex items-center justify-center`}>
+                {React.cloneElement(stat.icon as React.ReactElement, { spin: stat.spin })}
+              </div>
+            </div>
+          </Col>
+        ))}
+      </Row>
 
       <div className="glass-card p-4 rounded-[28px] grid grid-cols-12 gap-4 items-center">
         <div className="col-span-8">
@@ -238,7 +271,7 @@ export default function TasksPage() {
           dataSource={data} 
           rowKey="id" 
           loading={loading}
-          pagination={{ pageSize: 12, position: ['bottomCenter'] }}
+          pagination={{ pageSize: 12, placement: 'bottomCenter' }}
           className="designer-table"
           locale={{ emptyText: <Empty description="Không có nhiệm vụ nào cần xử lý" /> }}
           scroll={{ x: 'max-content' }}

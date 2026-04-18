@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Table, Card, Typography, Row, Col, Space, Button, 
-  Tag, Tabs, List, Avatar, message, Modal, Form, Input, Select 
+  Tag, Tabs, List, Avatar, message, Modal, Form, Input, Select, Badge
 } from 'antd';
 import { 
   SettingOutlined, 
@@ -83,90 +83,175 @@ export default function ConfigPage() {
   const tabItems = [
     {
       key: '1',
-      label: <span><TeamOutlined /> Quản lý Nhân sự</span>,
+      label: <span className="px-4"><TeamOutlined /> Quản lý Nhân sự</span>,
       children: (
-        <Card className="shadow-sm border-none" styles={{ body: { padding: 0 } }}>
-          <div className="p-4 flex justify-end">
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => { setModalType('user'); setModalVisible(true); }}>Thêm Nhân viên</Button>
+        <div className="animate-in">
+          <div className="flex justify-end mb-4">
+            <Button 
+              type="primary" 
+              icon={<PlusOutlined />} 
+              onClick={() => { setModalType('user'); setModalVisible(true); }}
+              className="h-10 px-6 rounded-xl font-bold bg-blue-600 border-none shadow-blue-100 shadow-lg"
+            >
+              THÊM NHÂN VIÊN
+            </Button>
           </div>
-          <Table 
-            columns={[
-              { title: 'Nhân viên', key: 'name', render: (_, r) => <Space><Avatar icon={<UserOutlined />} /> <Text strong>{r.full_name}</Text></Space> },
-              { title: 'Tên đăng nhập', dataIndex: 'username', key: 'user' },
-              { title: 'Vai trò', dataIndex: ['roles', 'name'], key: 'role', render: (t) => <Tag color="blue">{t}</Tag> },
-              { title: 'Bộ phận', dataIndex: ['departments', 'name'], key: 'dept' },
-              { title: 'Thao tác', key: 'action', render: () => <Space><Button size="small" icon={<EditOutlined />} /><Button size="small" danger icon={<DeleteOutlined />} /></Space> }
-            ]}
-            dataSource={users}
-            rowKey="id"
-            loading={loading}
-          />
-        </Card>
+          <div className="premium-shadow rounded-[32px] overflow-hidden bg-white border border-slate-100">
+            <Table 
+              columns={[
+                { 
+                  title: 'Nhân viên', 
+                  key: 'name', 
+                  render: (_, r) => (
+                    <Space size="middle">
+                      <Avatar 
+                        src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${r.username}`} 
+                        className="shadow-sm border border-slate-100"
+                      /> 
+                      <div className="flex flex-col">
+                        <Text strong className="text-slate-900">{r.full_name}</Text>
+                        <Text className="text-[10px] text-slate-400 font-bold uppercase">@{r.username}</Text>
+                      </div>
+                    </Space>
+                  ) 
+                },
+                { 
+                  title: 'Vai trò', 
+                  dataIndex: ['roles', 'name'], 
+                  key: 'role', 
+                  render: (t) => <Tag color="blue" className="rounded-lg border-none font-bold px-3 py-0.5">{t}</Tag> 
+                },
+                { 
+                  title: 'Bộ phận', 
+                  dataIndex: ['departments', 'name'], 
+                  key: 'dept',
+                  render: (t) => <Text className="text-slate-600 font-medium">{t}</Text>
+                },
+                { 
+                  title: 'Thao tác', 
+                  key: 'action', 
+                  width: 100,
+                  render: () => (
+                    <Space>
+                      <Button type="text" size="small" icon={<EditOutlined className="text-slate-400" />} />
+                      <Button type="text" size="small" danger icon={<DeleteOutlined />} />
+                    </Space>
+                  ) 
+                }
+              ]}
+              dataSource={users}
+              rowKey="id"
+              loading={loading}
+              className="designer-table"
+              pagination={{ pageSize: 12, placement: 'bottomCenter' }}
+            />
+          </div>
+        </div>
       )
     },
     {
       key: '2',
-      label: <span><DeploymentUnitOutlined /> Vai trò & Bộ phận</span>,
+      label: <span className="px-4"><DeploymentUnitOutlined /> Vai trò & Bộ phận</span>,
       children: (
-        <Row gutter={24}>
+        <Row gutter={24} className="animate-in pt-4">
           <Col span={12}>
-            <Card title="Danh sách Vai trò" extra={<Button size="small" icon={<PlusOutlined />} onClick={() => { setModalType('role'); setModalVisible(true); }} />}>
+            <div className="ui-surface p-6 bg-white border-slate-100">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <Title level={4} className="m-0 font-black text-slate-900">Danh sách Vai trò</Title>
+                  <Text className="premium-label text-slate-400">System Roles</Text>
+                </div>
+                <Button 
+                  shape="circle" 
+                  icon={<PlusOutlined />} 
+                  onClick={() => { setModalType('role'); setModalVisible(true); }}
+                  className="bg-slate-50 border-none text-slate-600"
+                />
+              </div>
               <Table 
                 dataSource={roles} 
                 rowKey="id" 
                 size="small"
+                className="designer-table"
                 columns={[
-                  { title: 'Tên vai trò', dataIndex: 'name', key: 'name' },
-                  { title: 'Phân hệ', dataIndex: 'portal', key: 'portal', render: (p) => <Tag>{p.toUpperCase()}</Tag> }
+                  { title: 'Tên vai trò', dataIndex: 'name', key: 'name', render: (t) => <Text strong className="text-slate-700">{t}</Text> },
+                  { title: 'Phân hệ', dataIndex: 'portal', key: 'portal', render: (p) => <Tag className="rounded-lg border-none px-3 font-bold">{p.toUpperCase()}</Tag> }
                 ]}
                 pagination={false}
               />
-            </Card>
+            </div>
           </Col>
           <Col span={12}>
-            <Card title="Danh sách Bộ phận" extra={<Button size="small" icon={<PlusOutlined />} onClick={() => { setModalType('dept'); setModalVisible(true); }} />}>
+            <div className="ui-surface p-6 bg-white border-slate-100">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <Title level={4} className="m-0 font-black text-slate-900">Danh sách Bộ phận</Title>
+                  <Text className="premium-label text-slate-400">Departments</Text>
+                </div>
+                <Button 
+                  shape="circle" 
+                  icon={<PlusOutlined />} 
+                  onClick={() => { setModalType('dept'); setModalVisible(true); }}
+                  className="bg-slate-50 border-none text-slate-600"
+                />
+              </div>
               <Table 
                 dataSource={departments} 
                 rowKey="id" 
                 size="small"
+                className="designer-table"
                 columns={[
-                  { title: 'Tên bộ phận', dataIndex: 'name', key: 'name' },
-                  { title: 'Code', dataIndex: 'code', key: 'code' },
-                  { title: 'Đầu vào', dataIndex: 'is_entry_point', key: 'entry', render: (v) => v ? <Tag color="green">Có</Tag> : <Tag>Không</Tag> }
+                  { title: 'Bộ phận', dataIndex: 'name', key: 'name', render: (t) => <Text strong className="text-slate-700">{t}</Text> },
+                  { title: 'Code', dataIndex: 'code', key: 'code', render: (c) => <Tag color="indigo" className="font-mono border-none">{c}</Tag> },
+                  { title: 'Đầu vào', dataIndex: 'is_entry_point', key: 'entry', render: (v) => v ? <Badge status="success" text="Có" /> : <Badge status="default" text="Không" /> }
                 ]}
                 pagination={false}
               />
-            </Card>
+            </div>
           </Col>
         </Row>
       )
     },
     {
       key: '3',
-      label: <span><NodeIndexOutlined /> Quy trình mẫu</span>,
+      label: <span className="px-4"><NodeIndexOutlined /> Quy trình & Máy móc</span>,
       children: (
-        <Card className="shadow-sm">
-          <div className="mb-4">
-            <Text type="secondary">Quản lý các quy trình sản xuất mẫu. Truy cập trang chi tiết để thêm/sửa.</Text>
-          </div>
-          <Button type="primary" onClick={() => router.push('/management/config/workflows')}>
-            Quản lý Quy trình mẫu
-          </Button>
-        </Card>
-      )
-    },
-    {
-      key: '4',
-      label: <span><ToolOutlined /> Máy móc</span>,
-      children: (
-        <Card className="shadow-sm">
-          <div className="mb-4">
-            <Text type="secondary">Quản lý danh sách máy móc theo từng bộ phận.</Text>
-          </div>
-          <Button type="primary" onClick={() => router.push('/management/config/machines')}>
-            Quản lý Máy móc
-          </Button>
-        </Card>
+        <div className="max-w-4xl mx-auto py-12 animate-in">
+          <Row gutter={24}>
+            <Col span={12}>
+              <div className="ui-surface p-8 text-center bg-white border-slate-100 flex flex-col items-center">
+                <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-[24px] flex items-center justify-center text-3xl mb-4">
+                  <NodeIndexOutlined />
+                </div>
+                <Title level={4} className="m-0 font-black text-slate-900">QUY TRÌNH MẪU</Title>
+                <Text className="text-slate-400 mt-2 mb-6 block">Quản lý các quy trình sản xuất mẫu linh hoạt</Text>
+                <Button 
+                  type="primary" 
+                  onClick={() => router.push('/management/config/workflows')}
+                  className="h-11 px-8 rounded-xl font-bold bg-indigo-600 border-none shadow-indigo-100 shadow-xl"
+                >
+                  TRUY CẬP CẤU HÌNH
+                </Button>
+              </div>
+            </Col>
+            <Col span={12}>
+              <div className="ui-surface p-8 text-center bg-white border-slate-100 flex flex-col items-center">
+                <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-[24px] flex items-center justify-center text-3xl mb-4">
+                  <ToolOutlined />
+                </div>
+                <Title level={4} className="m-0 font-black text-slate-900">HỆ THỐNG MÁY MÓC</Title>
+                <Text className="text-slate-400 mt-2 mb-6 block">Quản lý danh sách máy móc theo từng bộ phận</Text>
+                <Button 
+                  type="primary" 
+                  onClick={() => router.push('/management/config/machines')}
+                  className="h-11 px-8 rounded-xl font-bold bg-emerald-600 border-none shadow-emerald-100 shadow-xl"
+                >
+                  TRUY CẬP CẤU HÌNH
+                </Button>
+              </div>
+            </Col>
+          </Row>
+        </div>
       )
     }
   ];

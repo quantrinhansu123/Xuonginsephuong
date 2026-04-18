@@ -160,7 +160,7 @@ export default function WarehousePage() {
             rowKey="id" 
             loading={loading} 
             className="designer-table"
-            pagination={{ pageSize: 12, position: ['bottomCenter'] }}
+            pagination={{ pageSize: 12, placement: 'bottomCenter' }}
           />
         </div>
       )
@@ -182,7 +182,7 @@ export default function WarehousePage() {
             rowKey="id" 
             loading={loading} 
             className="designer-table"
-            pagination={{ pageSize: 12, position: ['bottomCenter'] }}
+            pagination={{ pageSize: 12, placement: 'bottomCenter' }}
           />
         </div>
       )

@@ -725,7 +725,7 @@ export default function FinancePage() {
               dataSource={transactions}
               rowKey="id"
               loading={loading}
-              pagination={{ pageSize: 12, position: ['bottomCenter'] }}
+              pagination={{ pageSize: 12, placement: 'bottomCenter' }}
               className="designer-table"
               scroll={{ x: 'max-content' }}
             />

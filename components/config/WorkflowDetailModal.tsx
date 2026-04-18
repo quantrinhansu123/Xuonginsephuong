@@ -221,13 +221,25 @@ export default function WorkflowDetailModal({ visible, workflow, departments, on
 
   return (
     <Modal
-      title={workflow ? `Quy trình: ${workflow.name}` : 'Thêm Quy trình mới'}
+      title={
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl"><ApartmentOutlined /></div>
+          <div>
+            <div className="text-lg font-black text-slate-900 leading-tight uppercase">{workflow ? 'CẤU HÌNH QUY TRÌNH' : 'THÊM QUY TRÌNH MỚI'}</div>
+            <Text className="premium-label text-slate-400">Workflow Definition</Text>
+          </div>
+        </div>
+      }
       open={visible}
       onCancel={onClose}
       footer={null}
       width={800}
+      centered
+      className="premium-modal no-padding-body"
     >
-      <Tabs defaultActiveKey="1" items={tabItems} destroyOnHidden />
+      <div className="p-0">
+        <Tabs defaultActiveKey="1" items={tabItems} destroyOnHidden centered className="premium-tabs-layout" />
+      </div>
     </Modal>
   );
 }
