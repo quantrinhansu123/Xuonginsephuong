@@ -1,15 +1,15 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { 
-  Table, Card, Typography, Row, Col, Space, Button, 
-  Select, DatePicker, Tag, message, Statistic, Tabs, 
+import {
+  Table, Card, Typography, Row, Col, Space, Button,
+  Select, DatePicker, Tag, message, Statistic, Tabs,
   Input, Segmented, Modal, Form, InputNumber, Popconfirm,
   Descriptions, Badge, Tooltip as AntTooltip, Dropdown
 } from 'antd';
-import { 
-  DollarOutlined, 
-  ReloadOutlined, 
+import {
+  DollarOutlined,
+  ReloadOutlined,
   FileExcelOutlined,
   ArrowUpOutlined,
   ArrowDownOutlined,
@@ -29,14 +29,15 @@ import {
   MoreOutlined,
   CheckOutlined,
   CloseOutlined,
-  SwapOutlined
+  SwapOutlined,
+  HistoryOutlined
 } from '@ant-design/icons';
 import { supabase } from '@/lib/supabase';
 import dayjs from 'dayjs';
 import * as XLSX from 'xlsx';
-import { 
-  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
-  Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell 
+import {
+  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell
 } from 'recharts';
 
 const { Title, Text } = Typography;
@@ -74,7 +75,7 @@ export default function FinancePage() {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [accountFilter, setAccountFilter] = useState('all');
   const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
-  
+
   // Modals
   const [transactionModalVisible, setTransactionModalVisible] = useState(false);
   const [accountModalVisible, setAccountModalVisible] = useState(false);
@@ -83,7 +84,7 @@ export default function FinancePage() {
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
   const [selectedAccount, setSelectedAccount] = useState<any>(null);
   const [editingAccount, setEditingAccount] = useState<any>(null);
-  
+
   const [form] = Form.useForm();
   const [accountForm] = Form.useForm();
   const [transferForm] = Form.useForm();
@@ -127,10 +128,10 @@ export default function FinancePage() {
 
       const { data: txData, error: txError } = await query;
       if (txError) throw txError;
-      
+
       let filtered = txData || [];
       if (search) {
-        filtered = filtered.filter(t => 
+        filtered = filtered.filter(t =>
           t.code?.toLowerCase().includes(search.toLowerCase()) ||
           t.description?.toLowerCase().includes(search.toLowerCase()) ||
           t.customer?.name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -206,9 +207,9 @@ export default function FinancePage() {
         .like('code', `${prefix}-%`)
         .order('code', { ascending: false })
         .limit(1);
-      
-      const nextNum = lastTx && lastTx.length > 0 
-        ? parseInt(lastTx[0].code.split('-')[1]) + 1 
+
+      const nextNum = lastTx && lastTx.length > 0
+        ? parseInt(lastTx[0].code.split('-')[1]) + 1
         : 1;
       const code = `${prefix}-${String(nextNum).padStart(5, '0')}`;
 
@@ -276,7 +277,7 @@ export default function FinancePage() {
         .from('transactions')
         .update({ status: 'cancelled' })
         .eq('id', id);
-      
+
       // Then delete
       const { error } = await supabase
         .from('transactions')
@@ -346,7 +347,7 @@ export default function FinancePage() {
         .select('id')
         .eq('cash_account_id', id)
         .limit(1);
-      
+
       if (txs && txs.length > 0) {
         message.error('Không thể xóa tài khoản đã có giao dịch');
         return;
@@ -356,7 +357,7 @@ export default function FinancePage() {
         .from('cash_accounts')
         .delete()
         .eq('id', id);
-      
+
       if (error) throw error;
       message.success('Đã xóa tài khoản');
       fetchData();
@@ -377,9 +378,9 @@ export default function FinancePage() {
         .like('code', 'CK-%')
         .order('code', { ascending: false })
         .limit(1);
-      
-      const nextNum = lastTransfer && lastTransfer.length > 0 
-        ? parseInt(lastTransfer[0].code.split('-')[1]) + 1 
+
+      const nextNum = lastTransfer && lastTransfer.length > 0
+        ? parseInt(lastTransfer[0].code.split('-')[1]) + 1
         : 1;
       const code = `CK-${String(nextNum).padStart(5, '0')}`;
 
@@ -434,7 +435,7 @@ export default function FinancePage() {
       "Mô tả": t.description,
       "Trạng thái": t.status === 'completed' ? 'Hoàn thành' : 'Đã hủy'
     }));
-    
+
     const ws = XLSX.utils.json_to_sheet(exportData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "GiaoDich");
@@ -474,10 +475,10 @@ export default function FinancePage() {
 
   // Columns
   const transactionColumns = [
-    { 
-      title: 'Mã GD', 
-      dataIndex: 'code', 
-      key: 'code', 
+    {
+      title: 'Mã GD',
+      dataIndex: 'code',
+      key: 'code',
       width: 120,
       render: (code: string, r: any) => (
         <Button type="link" className="p-0" onClick={() => { setSelectedTransaction(r); setDetailModalVisible(true); }}>
@@ -485,17 +486,17 @@ export default function FinancePage() {
         </Button>
       )
     },
-    { 
-      title: 'Ngày', 
-      dataIndex: 'transaction_date', 
-      key: 'date', 
+    {
+      title: 'Ngày',
+      dataIndex: 'transaction_date',
+      key: 'date',
       width: 100,
       render: (d: string) => dayjs(d).format('DD/MM/YYYY')
     },
-    { 
-      title: 'Loại', 
-      dataIndex: 'type', 
-      key: 'type', 
+    {
+      title: 'Loại',
+      dataIndex: 'type',
+      key: 'type',
       width: 70,
       render: (t: string) => (
         <Tag color={TYPE_LABELS[t]?.color || 'default'}>
@@ -503,13 +504,13 @@ export default function FinancePage() {
         </Tag>
       )
     },
-    { 
-      title: 'Danh mục', 
+    {
+      title: 'Danh mục',
       key: 'category',
       render: (_: any, r: any) => r.category?.name || '---'
     },
-    { 
-      title: 'Tài khoản', 
+    {
+      title: 'Tài khoản',
       key: 'account',
       render: (_: any, r: any) => (
         <Space>
@@ -520,8 +521,8 @@ export default function FinancePage() {
         </Space>
       )
     },
-    { 
-      title: 'Khách hàng/Đơn hàng', 
+    {
+      title: 'Khách hàng/Đơn hàng',
       key: 'reference',
       render: (_: any, r: any) => (
         <div>
@@ -530,10 +531,10 @@ export default function FinancePage() {
         </div>
       )
     },
-    { 
-      title: 'Số tiền', 
-      dataIndex: 'amount', 
-      key: 'amount', 
+    {
+      title: 'Số tiền',
+      dataIndex: 'amount',
+      key: 'amount',
       align: 'right' as const,
       render: (a: number, r: any) => (
         <Text strong style={{ color: r.type === 'income' ? '#52c41a' : '#f5222d' }}>
@@ -541,9 +542,9 @@ export default function FinancePage() {
         </Text>
       )
     },
-    { 
-      title: 'Trạng thái', 
-      dataIndex: 'status', 
+    {
+      title: 'Trạng thái',
+      dataIndex: 'status',
       key: 'status',
       render: (s: string) => (
         <Tag color={s === 'completed' ? 'green' : 'red'}>
@@ -566,20 +567,20 @@ export default function FinancePage() {
   ];
 
   const accountColumns = [
-    { 
-      title: 'Mã', 
-      dataIndex: 'code', 
+    {
+      title: 'Mã',
+      dataIndex: 'code',
       key: 'code',
       width: 100
     },
-    { 
-      title: 'Tên tài khoản', 
-      dataIndex: 'name', 
+    {
+      title: 'Tên tài khoản',
+      dataIndex: 'name',
       key: 'name'
     },
-    { 
-      title: 'Loại', 
-      dataIndex: 'type', 
+    {
+      title: 'Loại',
+      dataIndex: 'type',
       key: 'type',
       render: (t: string) => {
         const icons: Record<string, any> = { cash: <WalletOutlined />, bank: <BankOutlined />, momo: <CreditCardOutlined /> };
@@ -587,14 +588,14 @@ export default function FinancePage() {
         return <Tag icon={icons[t]}>{labels[t] || t}</Tag>;
       }
     },
-    { 
-      title: 'Số TK/Ngân hàng', 
+    {
+      title: 'Số TK/Ngân hàng',
       key: 'bank_info',
       render: (_: any, r: any) => r.type === 'bank' ? `${r.bank_name || ''} - ${r.account_number || ''}` : '---'
     },
-    { 
-      title: 'Số dư', 
-      dataIndex: 'balance', 
+    {
+      title: 'Số dư',
+      dataIndex: 'balance',
       key: 'balance',
       align: 'right' as const,
       render: (b: number) => <Text strong style={{ color: b >= 0 ? '#1890ff' : '#f5222d' }}>{b?.toLocaleString()} đ</Text>
@@ -627,8 +628,8 @@ export default function FinancePage() {
               <div className="ui-surface p-6 flex items-center justify-between border-none">
                 <div className="flex flex-col">
                   <Text className="premium-label mb-1">Tổng thu</Text>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-black text-emerald-600 tracking-tight">{stats.totalIn.toLocaleString()}</span>
+                  <div className="flex items-baseline gap-1 whitespace-nowrap">
+                    <span className="text-2xl font-black text-emerald-600 leading-none">{stats.totalIn.toLocaleString()}</span>
                     <span className="text-xs font-bold text-slate-400">đ</span>
                   </div>
                 </div>
@@ -641,8 +642,8 @@ export default function FinancePage() {
               <div className="ui-surface p-6 flex items-center justify-between border-none">
                 <div className="flex flex-col">
                   <Text className="premium-label mb-1">Tổng chi</Text>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-black text-rose-600 tracking-tight">{stats.totalOut.toLocaleString()}</span>
+                  <div className="flex items-baseline gap-1 whitespace-nowrap">
+                    <span className="text-2xl font-black text-rose-600 leading-none">{stats.totalOut.toLocaleString()}</span>
                     <span className="text-xs font-bold text-slate-400">đ</span>
                   </div>
                 </div>
@@ -655,8 +656,8 @@ export default function FinancePage() {
               <div className="ui-surface p-6 flex items-center justify-between border-none">
                 <div className="flex flex-col">
                   <Text className="premium-label mb-1">Dòng tiền ròng</Text>
-                  <div className="flex items-baseline gap-1">
-                    <span className={`text-2xl font-black tracking-tight ${stats.netFlow >= 0 ? 'text-indigo-600' : 'text-rose-600'}`}>
+                  <div className="flex items-baseline gap-1 whitespace-nowrap">
+                    <span className={`text-2xl font-black leading-none ${stats.netFlow >= 0 ? 'text-indigo-600' : 'text-rose-600'}`}>
                       {stats.netFlow.toLocaleString()}
                     </span>
                     <span className="text-xs font-bold text-slate-400">đ</span>
@@ -671,8 +672,8 @@ export default function FinancePage() {
               <div className="ui-surface p-6 flex items-center justify-between border-none">
                 <div className="flex flex-col">
                   <Text className="premium-label mb-1">Số giao dịch</Text>
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-black text-slate-900 tracking-tight">{stats.transactionCount}</span>
+                  <div className="flex items-baseline gap-1 whitespace-nowrap">
+                    <span className="text-2xl font-black text-slate-900 leading-none">{stats.transactionCount}</span>
                     <span className="text-xs font-bold text-slate-400">lần</span>
                   </div>
                 </div>
@@ -685,13 +686,13 @@ export default function FinancePage() {
 
           <div className="glass-card p-4 rounded-[28px] grid grid-cols-12 gap-4 items-center">
             <div className="col-span-3">
-              <Input 
-                prefix={<SearchOutlined className="text-slate-400" />} 
-                placeholder="Tìm giao dịch, khách..." 
-                value={search} 
-                onChange={e => setSearch(e.target.value)} 
+              <Input
+                prefix={<SearchOutlined className="text-slate-400" />}
+                placeholder="Tìm giao dịch, khách..."
+                value={search}
+                onChange={e => setSearch(e.target.value)}
                 className="premium-select"
-                allowClear 
+                allowClear
               />
             </div>
             <div className="col-span-2">
@@ -719,11 +720,11 @@ export default function FinancePage() {
           </div>
 
           <div className="premium-shadow rounded-[32px] overflow-hidden bg-white">
-            <Table 
-              columns={transactionColumns} 
-              dataSource={transactions} 
-              rowKey="id" 
-              loading={loading} 
+            <Table
+              columns={transactionColumns}
+              dataSource={transactions}
+              rowKey="id"
+              loading={loading}
               pagination={{ pageSize: 12, position: ['bottomCenter'] }}
               className="designer-table"
               scroll={{ x: 'max-content' }}
@@ -743,11 +744,11 @@ export default function FinancePage() {
               THÊM TÀI KHOẢN
             </Button>
           </div>
-          
+
           <Row gutter={[20, 20]}>
             {cashAccounts.map(acc => (
               <Col span={6} key={acc.id}>
-                <div 
+                <div
                   className="ui-surface p-5 cursor-pointer flex flex-col justify-between h-full bg-white border-slate-100"
                   onClick={() => { setSelectedAccount(acc); }}
                 >
@@ -757,12 +758,12 @@ export default function FinancePage() {
                       {acc.type === 'cash' && <WalletOutlined />}
                       {acc.type === 'momo' && <CreditCardOutlined />}
                     </div>
-                    <Text className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{acc.type}</Text>
+                    <Text className="text-[10px] font-black text-slate-400 uppercase tracking-wider">{acc.type}</Text>
                   </div>
                   <div>
                     <Text strong className="text-slate-900 block mb-1">{acc.name}</Text>
                     <div className="flex items-baseline gap-1 mb-2">
-                      <span className={`text-xl font-black ${ (acc.balance || 0) >= 0 ? 'text-indigo-600' : 'text-rose-600'}`}>{acc.balance?.toLocaleString()}</span>
+                      <span className={`text-xl font-black ${(acc.balance || 0) >= 0 ? 'text-indigo-600' : 'text-rose-600'}`}>{acc.balance?.toLocaleString()}</span>
                       <span className="text-xs font-bold text-slate-400">đ</span>
                     </div>
                     {acc.type === 'bank' && acc.account_number && (
@@ -796,7 +797,7 @@ export default function FinancePage() {
                   <LineChart data={getDailyData()}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                     <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }} />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }} tickFormatter={(v) => `${(v/1000000).toFixed(1)}M`} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }} tickFormatter={(v) => `${(v / 1000000).toFixed(1)}M`} />
                     <Tooltip cursor={{ stroke: '#6366f1', strokeWidth: 2 }} contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }} formatter={(v: any) => v?.toLocaleString() + ' đ'} />
                     <Legend iconType="circle" />
                     <Line type="monotone" dataKey="thu" stroke="#10b981" name="Thu" strokeWidth={4} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, strokeWidth: 0 }} />
@@ -831,7 +832,7 @@ export default function FinancePage() {
               <BarChart data={getAccountBalanceData()} barSize={40}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                 <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }} tickFormatter={(v) => `${(v/1000000).toFixed(1)}M`} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }} tickFormatter={(v) => `${(v / 1000000).toFixed(1)}M`} />
                 <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }} formatter={(v: any) => v?.toLocaleString() + ' đ'} />
                 <Bar dataKey="balance" fill="url(#barGradient)" radius={[8, 8, 0, 0]}>
                   {getAccountBalanceData().map((entry, index) => (
@@ -861,9 +862,9 @@ export default function FinancePage() {
         <div className="flex items-center gap-3">
           <Button icon={<FileExcelOutlined />} onClick={exportToExcel} className="h-12 px-6 rounded-2xl font-bold border-slate-200">XUẤT EXCEL</Button>
           <Button icon={<SwapOutlined />} onClick={() => setTransferModalVisible(true)} className="h-12 px-6 rounded-2xl font-bold border-slate-200">CHUYỂN KHOẢN</Button>
-          <Button 
-            type="primary" 
-            icon={<PlusOutlined />} 
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
             onClick={() => setTransactionModalVisible(true)}
             className="h-12 px-8 rounded-2xl font-bold bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200 shadow-lg border-none"
           >
@@ -872,9 +873,9 @@ export default function FinancePage() {
         </div>
       </div>
 
-      <Card className="shadow-sm">
-        <Tabs defaultActiveKey="1" items={tabItems} />
-      </Card>
+      <div className="bg-transparent border-none">
+        <Tabs defaultActiveKey="1" items={tabItems} centered className="premium-tabs-layout mt-4" />
+      </div>
 
       {/* Transaction Modal */}
       <Modal
@@ -883,7 +884,7 @@ export default function FinancePage() {
             <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl"><DollarOutlined /></div>
             <div>
               <div className="text-lg font-black text-slate-900 leading-tight">TẠO GIAO DỊCH</div>
-              <Text className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Financial Entry</Text>
+              <Text className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Financial Entry</Text>
             </div>
           </div>
         }
@@ -895,74 +896,75 @@ export default function FinancePage() {
         className="premium-modal no-padding-body"
       >
         <div className="p-8">
-        <Form form={form} layout="vertical" onFinish={handleCreateTransaction} initialValues={{ type: 'income', transaction_date: dayjs() }}>
-          <Form.Item name="type" label="Loại giao dịch">
-            <Segmented block options={[{ label: 'THU TIỀN', value: 'income' }, { label: 'CHI TIỀN', value: 'expense' }]} />
-          </Form.Item>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item name="category_id" label="Danh mục" rules={[{ required: true }]}>
-                <Select placeholder="Chọn danh mục">
-                  {categories.filter(c => c.type === form.getFieldValue('type')).map(c => (
-                    <Option key={c.id} value={c.id}>{c.name}</Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="cash_account_id" label="Tài khoản" rules={[{ required: true }]}>
-                <Select placeholder="Chọn tài khoản">
-                  {cashAccounts.map(a => (
-                    <Option key={a.id} value={a.id}>{a.name} ({a.type === 'bank' ? a.bank_name : a.type})</Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Col>
-          </Row>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item name="amount" label="Số tiền" rules={[{ required: true }]}>
-                <InputNumber className="w-full" min={0} formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} />
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="transaction_date" label="Ngày giao dịch">
-                <DatePicker className="w-full" />
-              </Form.Item>
-            </Col>
-          </Row>
-          <Row gutter={16}>
-            <Col span={12}>
-              <Form.Item name="customer_id" label="Khách hàng">
-                <Select placeholder="Chọn khách hàng" allowClear showSearch filterOption={(i, o) => (o?.children as any || '').toLowerCase().includes(i.toLowerCase())}>
-                  {customers.map(c => <Option key={c.id} value={c.id}>{c.name} ({c.code})</Option>)}
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col span={12}>
-              <Form.Item name="order_id" label="Đơn hàng">
-                <Select placeholder="Chọn đơn hàng" allowClear showSearch filterOption={(i, o) => (o?.children as any || '').toLowerCase().includes(i.toLowerCase())}>
-                  {orders.map(o => <Option key={o.id} value={o.id}>{o.code} - {o.title}</Option>)}
-                </Select>
-              </Form.Item>
-            </Col>
-          </Row>
-          <Form.Item name="reference_type" label="Mục đích">
-            <Select placeholder="Chọn mục đích">
-              {Object.entries(REFERENCE_LABELS).map(([k, v]) => <Option key={k} value={k}>{v}</Option>)}
-            </Select>
-          </Form.Item>
-          <Form.Item name="description" label="Mô tả">
-            <TextArea rows={2} placeholder="Nội dung giao dịch..." />
-          </Form.Item>
-          <Form.Item name="note" label="Ghi chú">
-            <TextArea rows={1} placeholder="Ghi chú thêm..." />
-          </Form.Item>
-          <div className="flex justify-end gap-2">
-            <Button onClick={() => setTransactionModalVisible(false)}>Hủy</Button>
-            <Button type="primary" htmlType="submit" loading={saving}>Tạo giao dịch</Button>
-          </div>
-        </Form>
+          <Form form={form} layout="vertical" onFinish={handleCreateTransaction} initialValues={{ type: 'income', transaction_date: dayjs() }}>
+            <Form.Item name="type" label="Loại giao dịch">
+              <Segmented block options={[{ label: 'THU TIỀN', value: 'income' }, { label: 'CHI TIỀN', value: 'expense' }]} />
+            </Form.Item>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item name="category_id" label="Danh mục" rules={[{ required: true }]}>
+                  <Select placeholder="Chọn danh mục">
+                    {categories.filter(c => c.type === form.getFieldValue('type')).map(c => (
+                      <Option key={c.id} value={c.id}>{c.name}</Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item name="cash_account_id" label="Tài khoản" rules={[{ required: true }]}>
+                  <Select placeholder="Chọn tài khoản">
+                    {cashAccounts.map(a => (
+                      <Option key={a.id} value={a.id}>{a.name} ({a.type === 'bank' ? a.bank_name : a.type})</Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Col>
+            </Row>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item name="amount" label="Số tiền" rules={[{ required: true }]}>
+                  <InputNumber className="w-full" min={0} formatter={v => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')} />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item name="transaction_date" label="Ngày giao dịch">
+                  <DatePicker className="w-full" />
+                </Form.Item>
+              </Col>
+            </Row>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item name="customer_id" label="Khách hàng">
+                  <Select placeholder="Chọn khách hàng" allowClear showSearch filterOption={(i, o) => (o?.children as any || '').toLowerCase().includes(i.toLowerCase())}>
+                    {customers.map(c => <Option key={c.id} value={c.id}>{c.name} ({c.code})</Option>)}
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item name="order_id" label="Đơn hàng">
+                  <Select placeholder="Chọn đơn hàng" allowClear showSearch filterOption={(i, o) => (o?.children as any || '').toLowerCase().includes(i.toLowerCase())}>
+                    {orders.map(o => <Option key={o.id} value={o.id}>{o.code} - {o.title}</Option>)}
+                  </Select>
+                </Form.Item>
+              </Col>
+            </Row>
+            <Form.Item name="reference_type" label="Mục đích">
+              <Select placeholder="Chọn mục đích">
+                {Object.entries(REFERENCE_LABELS).map(([k, v]) => <Option key={k} value={k}>{v}</Option>)}
+              </Select>
+            </Form.Item>
+            <Form.Item name="description" label="Mô tả">
+              <TextArea rows={2} placeholder="Nội dung giao dịch..." />
+            </Form.Item>
+            <Form.Item name="note" label="Ghi chú">
+              <TextArea rows={1} placeholder="Ghi chú thêm..." />
+            </Form.Item>
+            <div className="flex justify-end gap-2">
+              <Button onClick={() => setTransactionModalVisible(false)}>Hủy</Button>
+              <Button type="primary" htmlType="submit" loading={saving}>Tạo giao dịch</Button>
+            </div>
+          </Form>
+        </div>
       </Modal>
 
       {/* Account Modal */}
@@ -991,7 +993,7 @@ export default function FinancePage() {
               <Option value="cash">Tiền mặt</Option>
               <Option value="bank">Tài khoản ngân hàng</Option>
               <Option value="momo">Ví điện tử (MoMo, ZaloPay...)</Option>
-</Select>
+            </Select>
           </Form.Item>
           <Row gutter={16}>
             <Col span={12}>
@@ -1112,7 +1114,7 @@ export default function FinancePage() {
                   </div>
                   <Space>
                     {selectedTransaction.status === 'completed' && (
-                      <Popconfirm 
+                      <Popconfirm
                         title="Hủy giao dịch này? Số dư tài khoản sẽ được hoàn lại."
                         onConfirm={async () => {
                           await supabase.from('transactions').update({ status: 'cancelled' }).eq('id', selectedTransaction.id);
@@ -1124,7 +1126,7 @@ export default function FinancePage() {
                         <Button danger icon={<CloseOutlined />}>Hủy giao dịch</Button>
                       </Popconfirm>
                     )}
-                    <Popconfirm 
+                    <Popconfirm
                       title="Xóa vĩnh viễn giao dịch này?"
                       onConfirm={() => handleDeleteTransaction(selectedTransaction.id)}
                     >

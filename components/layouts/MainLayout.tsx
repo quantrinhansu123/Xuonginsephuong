@@ -185,7 +185,7 @@ export default function MainLayout({ children, portal }: MainLayoutProps) {
           {!collapsed && (
             <div className="ml-4 overflow-hidden">
               <div className="text-indigo-600 font-black text-xl tracking-tighter">PPMS</div>
-              <div className="text-[10px] text-slate-400 font-bold tracking-widest uppercase">Production</div>
+              <div className="text-[10px] text-slate-400 font-bold tracking-wider uppercase">Production</div>
             </div>
           )}
         </div>
@@ -217,7 +217,7 @@ export default function MainLayout({ children, portal }: MainLayoutProps) {
           <div className="flex items-center gap-5">
             <div className="hidden sm:flex flex-col items-end justify-center h-full pt-1">
               <div className="font-bold text-slate-800 text-[14px] leading-none mb-1.5">{user.full_name || user.username}</div>
-              <div className="text-[10px] text-indigo-500 font-black uppercase tracking-widest leading-none">{user.role?.name}</div>
+              <div className="text-[10px] text-indigo-500 font-black uppercase tracking-wider leading-none">{user.role?.name}</div>
             </div>
             <Dropdown menu={{ items: userMenuItems }} placement="bottomRight" arrow>
               <div className="relative group cursor-pointer flex items-center">

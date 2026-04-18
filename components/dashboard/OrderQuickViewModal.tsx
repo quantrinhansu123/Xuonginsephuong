@@ -102,7 +102,7 @@ export default function OrderQuickViewModal({
             <Col span={14}>
               <div className="ui-surface p-6 h-full flex flex-col justify-between">
                 <div>
-                   <Text className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-4">THÔNG TIN CHI TIẾT</Text>
+                   <Text className="premium-label text-slate-400 block mb-4">THÔNG TIN CHI TIẾT</Text>
                    <div className="space-y-4">
                       <div className="flex justify-between items-center pb-3 border-b border-slate-50">
                         <Text className="text-slate-500 font-medium">Mã Lệnh Sản Xuất</Text>
@@ -128,7 +128,7 @@ export default function OrderQuickViewModal({
             </Col>
             <Col span={10}>
               <div className="ui-surface p-6 h-full bg-slate-900 text-white border-none flex flex-col items-center justify-center">
-                 <Text className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6">TIẾN ĐỘ TỔNG THỂ</Text>
+                 <Text className="premium-label text-slate-400 mb-6">TIẾN ĐỘ TỔNG THỂ</Text>
                  <Progress 
                     type="circle" 
                     percent={calculateProgress()} 
@@ -154,7 +154,7 @@ export default function OrderQuickViewModal({
             </Col>
             <Col span={24}>
               <div className="glass-card p-6 rounded-[24px]">
-                <Text className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-4">LỘ TRÌNH BỘ PHẬN</Text>
+                <Text className="premium-label text-slate-400 block mb-4">LỘ TRÌNH BỘ PHẬN</Text>
                 <div className="flex flex-wrap gap-3">
                   {tasks.map((task) => {
                     const color = getStatusColor(task.status);
@@ -279,7 +279,7 @@ export default function OrderQuickViewModal({
               </div>
               <div className="flex flex-col">
                  <span className="text-2xl font-black tracking-tighter text-slate-900 leading-tight">LSX: {order?.code}</span>
-                 <Text className="text-[10px] font-black uppercase tracking-widest text-indigo-500">{order?.status}</Text>
+                 <Text className="text-[10px] font-black uppercase tracking-wider text-indigo-500">{order?.status}</Text>
               </div>
            </div>
         </div>

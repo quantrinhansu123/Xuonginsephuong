@@ -172,55 +172,94 @@ export default function ConfigPage() {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center">
+    <div className="space-y-8 max-w-[1600px] mx-auto animate-in">
+      <div className="flex justify-between items-end">
         <div>
-          <Title level={2} className="m-0"><SettingOutlined /> Cấu hình Hệ thống</Title>
-          <Text type="secondary">Quản trị nhân sự, vai trò và các cài đặt cốt lõi</Text>
+          <Title level={2} className="m-0 font-black tracking-tight text-slate-900">
+            MASTER <span className="text-blue-600">CONFIGURATION</span>
+          </Title>
+          <div className="flex items-center gap-2 mt-2">
+            <div className="h-1 w-8 bg-blue-600 rounded-full" />
+            <Text className="premium-label text-slate-400">Quản trị nhân sự • Vai trò & Cấu hình cốt lõi</Text>
+          </div>
         </div>
-        <Button icon={<HistoryOutlined />} shape="circle" />
+        <div className="flex items-center gap-3">
+          <Button icon={<HistoryOutlined />} className="h-12 w-12 rounded-2xl border-slate-200 flex items-center justify-center text-xl" />
+        </div>
       </div>
 
-      <Tabs defaultActiveKey="1" items={tabItems} className="config-tabs bg-white p-4 rounded-2xl shadow-sm border border-gray-100" />
+      <Row gutter={[24, 24]}>
+        {[
+          { title: "NHÂN VIÊN", value: users.length, icon: <TeamOutlined />, color: "blue" },
+          { title: "BỘ PHẬN", value: departments.length, icon: <DeploymentUnitOutlined />, color: "indigo" },
+          { title: "VAI TRÒ", value: roles.length, icon: <SafetyCertificateOutlined />, color: "emerald" }
+        ].map((stat, idx) => (
+          <Col span={8} key={idx}>
+            <div className="ui-surface p-6 flex items-center justify-between border-none">
+              <div className="flex flex-col">
+                <Text className="premium-label mb-1 whitespace-nowrap">{stat.title}</Text>
+                <span className="text-3xl font-black text-slate-900 leading-none">{stat.value}</span>
+              </div>
+              <div className={`p-4 rounded-2xl bg-${stat.color}-50 text-${stat.color}-600 text-2xl shadow-sm border border-${stat.color}-100`}>
+                {stat.icon}
+              </div>
+            </div>
+          </Col>
+        ))}
+      </Row>
+
+      <Tabs defaultActiveKey="1" items={tabItems} centered className="premium-tabs-layout" />
 
       <Modal
-        title={`Thêm ${modalType} mới`}
+        title={
+          <div className="flex items-center gap-3">
+            <div className={`p-2 bg-blue-50 text-blue-600 rounded-xl`}><SettingOutlined /></div>
+            <div>
+              <div className="text-lg font-black text-slate-900 leading-tight uppercase">THÊM {modalType}</div>
+              <Text className="premium-label text-slate-400">System Configuration</Text>
+            </div>
+          </div>
+        }
         open={modalVisible}
         onCancel={() => setModalVisible(false)}
-        onOk={() => form.submit()}
+        footer={[
+          <Button key="back" onClick={() => setModalVisible(false)} className="rounded-xl font-bold">HỦY</Button>,
+          <Button key="submit" type="primary" onClick={() => form.submit()} className="rounded-xl font-bold bg-blue-600 border-none px-6">LƯU CẤU HÌNH</Button>
+        ]}
+        width={500}
+        centered
+        className="premium-modal no-padding-body"
       >
-        <Form form={form} layout="vertical" onFinish={handleCreate}>
-          {modalType === 'role' && (
-            <>
-              <Form.Item name="name" label="Tên vai trò" rules={[{ required: true }]}><Input /></Form.Item>
-              <Form.Item name="portal" label="Phân hệ" rules={[{ required: true }]}><Select><Option value="management">Quản lý</Option><Option value="operation">Vận hành</Option></Select></Form.Item>
-            </>
-          )}
-          {modalType === 'dept' && (
-            <>
-              <Form.Item name="name" label="Tên bộ phận" rules={[{ required: true }]}><Input /></Form.Item>
-              <Form.Item name="code" label="Mã code (Viết hoa)" rules={[{ required: true }]}><Input /></Form.Item>
-            </>
-          )}
-          {modalType === 'user' && (
-            <>
-              <Form.Item name="full_name" label="Họ tên" rules={[{ required: true }]}><Input /></Form.Item>
-              <Form.Item name="username" label="Tên đăng nhập" rules={[{ required: true }]}><Input /></Form.Item>
-              <Form.Item name="password" label="Mật khẩu" rules={[{ required: true }]}><Input.Password /></Form.Item>
-              <Form.Item name="role_id" label="Vai trò" rules={[{ required: true }]}>
-                <Select>{roles.map(r => <Option key={r.id} value={r.id}>{r.name}</Option>)}</Select>
-              </Form.Item>
-              <Form.Item name="department_id" label="Bộ phận" rules={[{ required: true }]}>
-                <Select>{departments.map(d => <Option key={d.id} value={d.id}>{d.name}</Option>)}</Select>
-              </Form.Item>
-            </>
-          )}
-        </Form>
+        <div className="p-8">
+          <Form form={form} layout="vertical" onFinish={handleCreate}>
+            {modalType === 'role' && (
+              <>
+                <Form.Item name="name" label="Tên vai trò" rules={[{ required: true }]}><Input className="premium-select" /></Form.Item>
+                <Form.Item name="portal" label="Phân hệ" rules={[{ required: true }]}><Select className="premium-select"><Option value="management">QUẢN LÝ</Option><Option value="operation">VẬN HÀNH</Option></Select></Form.Item>
+              </>
+            )}
+            {modalType === 'dept' && (
+              <>
+                <Form.Item name="name" label="Tên bộ phận" rules={[{ required: true }]}><Input className="premium-select" /></Form.Item>
+                <Form.Item name="code" label="Mã code (Viết hoa)" rules={[{ required: true }]}><Input className="premium-select" /></Form.Item>
+              </>
+            )}
+            {modalType === 'user' && (
+              <>
+                <Form.Item name="full_name" label="Họ tên" rules={[{ required: true }]}><Input className="premium-select" /></Form.Item>
+                <Form.Item name="username" label="Tên đăng nhập" rules={[{ required: true }]}><Input className="premium-select" /></Form.Item>
+                <Form.Item name="password" label="Mật khẩu" rules={[{ required: true }]}><Input.Password className="premium-select" /></Form.Item>
+                <Form.Item name="role_id" label="Vai trò" rules={[{ required: true }]}>
+                  <Select className="premium-select">{roles.map(r => <Option key={r.id} value={r.id}>{r.name}</Option>)}</Select>
+                </Form.Item>
+                <Form.Item name="department_id" label="Bộ phận" rules={[{ required: true }]}>
+                  <Select className="premium-select">{departments.map(d => <Option key={d.id} value={d.id}>{d.name}</Option>)}</Select>
+                </Form.Item>
+              </>
+            )}
+          </Form>
+        </div>
       </Modal>
-
-      <style jsx global>{`
-        .config-tabs .ant-tabs-nav { margin-bottom: 24px; }
-      `}</style>
     </div>
   );
 }

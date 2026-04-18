@@ -147,21 +147,40 @@ export default function MachinesPage() {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-8 max-w-[1600px] mx-auto animate-in">
+      <div className="flex justify-between items-end">
         <div>
-          <Title level={3} className="m-0"><ToolOutlined /> Quản lý Máy móc</Title>
-          <Text type="secondary">Cấu hình danh sách máy móc theo bộ phận</Text>
+          <Title level={2} className="m-0 font-black tracking-tight text-slate-900">
+            EQUIPMENT <span className="text-emerald-600">MANAGEMENT</span>
+          </Title>
+          <div className="flex items-center gap-2 mt-2">
+            <div className="h-1 w-8 bg-emerald-600 rounded-full" />
+            <Text className="premium-label text-slate-400">Quản lý danh sách máy móc • Trạng thái vận hành</Text>
+          </div>
         </div>
-        <Space>
-          <Button icon={<ReloadOutlined />} onClick={fetchData}>Làm mới</Button>
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => handleAddEdit()}>Thêm Máy</Button>
-        </Space>
+        <div className="flex items-center gap-3">
+          <Button icon={<ReloadOutlined />} onClick={fetchData} className="h-12 w-12 rounded-2xl border-slate-200 flex items-center justify-center text-xl" />
+          <Button 
+            type="primary" 
+            icon={<PlusOutlined />} 
+            onClick={() => handleAddEdit()}
+            className="h-12 px-8 rounded-2xl font-bold bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200 shadow-lg border-none"
+          >
+            THÊM MÁY MÓC
+          </Button>
+        </div>
       </div>
 
-      <Card className="shadow-sm">
-        <Table columns={columns} dataSource={data} rowKey="id" loading={loading} />
-      </Card>
+      <div className="premium-shadow rounded-[32px] overflow-hidden bg-white border border-slate-100">
+        <Table 
+          columns={columns} 
+          dataSource={data} 
+          rowKey="id" 
+          loading={loading} 
+          className="designer-table"
+          pagination={{ pageSize: 12, position: ['bottomCenter'] }}
+        />
+      </div>
 
       <MachineDetailModal
         visible={modalVisible}

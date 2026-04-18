@@ -17,8 +17,12 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Inter, system-ui, sans-serif;
+  font-family: var(--font-inter), var(--font-geist-sans), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6, .ant-typography-title, strong, b, .font-black, .font-bold {
+  font-family: var(--font-inter), sans-serif !important;
 }
 
 /* Premium Surface Utilities */
@@ -54,10 +58,11 @@ body {
 }
 
 .premium-label {
+  font-family: var(--font-inter), sans-serif !important;
   font-size: 10px;
-  font-weight: 900;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.02em;
   color: #94a3b8;
   display: block;
 }

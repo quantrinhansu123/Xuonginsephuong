@@ -358,8 +358,8 @@ export default function DashboardPage() {
             <div className="ui-surface p-6 flex items-center justify-between border-none">
               <div className="flex flex-col">
                 <Text className="premium-label mb-1 whitespace-nowrap">{stat.title}</Text>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-3xl font-black text-slate-900 tracking-tight">{stat.value}</span>
+                <div className="flex items-baseline gap-1 whitespace-nowrap">
+                  <span className="text-3xl font-black text-slate-900 leading-none">{stat.value}</span>
                   {stat.suffix && <span className="text-sm font-bold text-slate-400">{stat.suffix}</span>}
                 </div>
               </div>
