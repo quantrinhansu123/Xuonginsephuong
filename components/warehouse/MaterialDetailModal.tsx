@@ -233,14 +233,25 @@ export default function MaterialDetailModal({ visible, material, onClose, onRefr
                   <Input placeholder="VD: Giấy A4 80gsm" />
                 </Form.Item>
               </Col>
-              <Col span={12}>
+              <Col span={8}>
                 <Form.Item name="unit" label="Đơn vị tính" rules={[{ required: true }]}>
                   <Select>
                     <Option value="Tờ">Tờ</Option>
                     <Option value="Cuộn">Cuộn</Option>
                     <Option value="Kg">Kg</Option>
-                    <Option value="Lít">Lít</Option>
+                    <Option value="Ram">Ram</Option>
                     <Option value="Hộp">Hộp</Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={8}>
+                <Form.Item name="category" label="Phân loại" rules={[{ required: true }]}>
+                  <Select placeholder="Chọn loại">
+                    <Option value="Giấy">Giấy</Option>
+                    <Option value="Mực">Mực</Option>
+                    <Option value="Khuôn in">Khuôn in</Option>
+                    <Option value="Hóa chất">Hóa chất</Option>
+                    <Option value="Vật tư phụ">Vật tư phụ</Option>
                   </Select>
                 </Form.Item>
               </Col>

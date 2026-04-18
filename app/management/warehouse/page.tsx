@@ -18,7 +18,8 @@ import {
   SearchOutlined,
   FileExcelOutlined,
   FilePdfOutlined,
-  EyeOutlined
+  EyeOutlined,
+  EditOutlined
 } from '@ant-design/icons';
 import { supabase } from '@/lib/supabase';
 import dayjs from 'dayjs';
@@ -124,23 +125,32 @@ export default function WarehousePage() {
       children: (
         <div className="premium-shadow rounded-[28px] overflow-hidden bg-white mt-4 border border-slate-100">
           <Table 
+            
             columns={[
-              { title: 'Vật tư', dataIndex: 'name', key: 'name', render: (t: string) => <Text strong className="text-slate-900">{t}</Text> },
-              { title: 'Đơn vị', dataIndex: 'unit', key: 'unit' },
+              { 
+                title: 'Vật tư', 
+                dataIndex: 'name', 
+                key: 'name', 
+                onCell: () => ({ 'data-label': 'Vật tư' } as any),
+                render: (t: string) => <Text strong className="text-slate-900">{t}</Text> 
+              },
+              { title: 'Đơn vị', dataIndex: 'unit', key: 'unit', onCell: () => ({ 'data-label': 'Đơn vị' } as any) },
               { 
                 title: 'Tồn kho', 
                 dataIndex: 'stock_quantity', 
                 key: 'stock_quantity', 
+                onCell: () => ({ 'data-label': 'Tồn kho' } as any),
                 render: (q: number, record: any) => (
-                  <Text strong className={q <= record.min_stock ? 'text-rose-600' : 'text-indigo-600 font-mono text-lg'}>
+                  <Text strong className={q <= record.min_stock ? 'text-rose-600 animate-pulse' : 'text-indigo-600 font-mono text-lg'}>
                     {q.toLocaleString()}
                   </Text>
                 )
               },
-              { title: 'Ngưỡng t.thiểu', dataIndex: 'min_stock', key: 'min_stock', render: (v: number) => <Text className="text-slate-400 font-mono">{v}</Text> },
+              { title: 'Ngưỡng t.thiểu', dataIndex: 'min_stock', key: 'min_stock', onCell: () => ({ 'data-label': 'Tối thiểu' } as any), render: (v: number) => <Text className="text-slate-400 font-mono">{v}</Text> },
               { 
                 title: 'Trạng thái', 
                 key: 'status',
+                onCell: () => ({ 'data-label': 'Trạng thái' } as any),
                 render: (_: any, record: any) => (
                   record.stock_quantity <= record.min_stock 
                     ? <Tag color="rose" className="border-none font-black px-3 rounded-full uppercase text-[10px]">Cần nhập hàng</Tag> 
@@ -148,9 +158,11 @@ export default function WarehousePage() {
                 )
               },
               {
-                title: '',
+                title: 'Thao tác',
                 key: 'action',
                 width: 60,
+                align: 'right' as const,
+                onCell: () => ({ 'data-label': 'Thao tác' } as any),
                 render: (_: any, record: any) => (
                   <Button type="text" icon={<EyeOutlined className="text-slate-400 hover:text-indigo-600" />} onClick={() => handleMaterialClick(record)} />
                 ),
@@ -171,12 +183,13 @@ export default function WarehousePage() {
       children: (
         <div className="premium-shadow rounded-[28px] overflow-hidden bg-white mt-4 border border-slate-100">
           <Table 
+            
             columns={[
-              { title: 'Thời gian', dataIndex: 'created_at', key: 'created_at', render: (d: string) => <Text className="text-slate-400 font-mono text-xs">{dayjs(d).format('DD/MM HH:mm')}</Text> },
-              { title: 'Vật tư', dataIndex: ['materials', 'name'], key: 'material', render: (t: string) => <Text strong className="text-slate-800">{t}</Text> },
-              { title: 'LSX Liên kết', dataIndex: ['production_orders', 'code'], key: 'lsx', render: (v: string) => v ? <Tag color="indigo" className="font-mono font-bold border-none">{v}</Tag> : <Text className="text-slate-300">---</Text> },
-              { title: 'Số lượng', dataIndex: 'quantity', key: 'quantity', align: 'right' as const, render: (q: number, r: any) => <Text strong className={r.type === 'import' ? 'text-emerald-600' : 'text-rose-600'}>{r.type === 'import' ? '+' : '-'}{q.toLocaleString()}</Text> },
-              { title: 'Ghi chú/Lý do', dataIndex: 'reason', key: 'reason', ellipsis: true, render: (t: string) => <Text className="text-slate-500 italic">{t}</Text> }
+              { title: 'Thời gian', dataIndex: 'created_at', key: 'created_at', onCell: () => ({ 'data-label': 'Thời gian' } as any), render: (d: string) => <Text className="text-slate-400 font-mono text-xs">{dayjs(d).format('DD/MM HH:mm')}</Text> },
+              { title: 'Vật tư', dataIndex: ['materials', 'name'], key: 'material', onCell: () => ({ 'data-label': 'Vật tư' } as any), render: (t: string) => <Text strong className="text-slate-800">{t}</Text> },
+              { title: 'LSX Liên kết', dataIndex: ['production_orders', 'code'], key: 'lsx', onCell: () => ({ 'data-label': 'LSX' } as any), render: (v: string) => v ? <Tag color="indigo" className="font-mono font-bold border-none">{v}</Tag> : <Text className="text-slate-300">---</Text> },
+              { title: 'Số lượng', dataIndex: 'quantity', key: 'quantity', align: 'right' as const, onCell: () => ({ 'data-label': 'Số lượng' } as any), render: (q: number, r: any) => <Text strong className={r.type === 'import' ? 'text-emerald-600' : 'text-rose-600'}>{r.type === 'import' ? '+' : '-'}{q.toLocaleString()}</Text> },
+              { title: 'Ghi chú/Lý do', dataIndex: 'reason', key: 'reason', ellipsis: true, onCell: () => ({ 'data-label': 'Lý do' } as any), render: (t: string) => <Text className="text-slate-500 italic">{t}</Text> }
             ]} 
             dataSource={logs} 
             rowKey="id" 
@@ -184,6 +197,52 @@ export default function WarehousePage() {
             className="designer-table"
             pagination={{ pageSize: 12, position: ['bottomCenter'] } as any}
           />
+        </div>
+      )
+    },
+    {
+      key: '4',
+      label: <span className="px-4 font-bold text-indigo-600"><PlusOutlined /> Danh mục & CRUD</span>,
+      children: (
+        <div className="space-y-4 mt-4">
+          <div className="flex justify-end">
+            <Button 
+                type="primary" 
+                icon={<PlusOutlined />} 
+                onClick={() => { setSelectedMaterial(null); setMaterialModalVisible(true); }}
+                className="rounded-xl font-bold bg-indigo-600 border-none shadow-lg shadow-indigo-100"
+              >
+                THÊM VẬT TƯ MỚI
+              </Button>
+          </div>
+          <div className="premium-shadow rounded-[28px] overflow-hidden bg-white border border-slate-100">
+            <Table 
+              
+              columns={[
+                { title: 'Tên Vật Tư', dataIndex: 'name', key: 'name', onCell: () => ({ 'data-label': 'Tên' } as any), render: (t: string) => <Text strong className="text-slate-800">{t}</Text> },
+                { title: 'Phân loại', dataIndex: 'category', key: 'category', onCell: () => ({ 'data-label': 'Loại' } as any), render: (c: string) => <Tag color="blue" className="rounded-lg border-none font-bold px-2">{c || 'Chưa phân loại'}</Tag> },
+                { title: 'Nhà cung cấp', dataIndex: 'supplier', key: 'supplier', onCell: () => ({ 'data-label': 'NCC' } as any), render: (s: string) => <Text className="text-slate-500">{s || '---'}</Text> },
+                { title: 'Đơn giá', dataIndex: 'unit_price', key: 'price', align: 'right' as const, onCell: () => ({ 'data-label': 'Giá' } as any), render: (p: number) => <Text strong className="text-slate-700 font-mono">{p?.toLocaleString()} đ</Text> },
+                {
+                  title: 'Thao tác',
+                  key: 'action',
+                  width: 100,
+                  align: 'right' as const,
+                  onCell: () => ({ 'data-label': 'Thao tác' } as any),
+                  render: (_: any, record: any) => (
+                    <Space>
+                      <Button type="text" icon={<EditOutlined className="text-slate-400" />} onClick={() => handleMaterialClick(record)} />
+                    </Space>
+                  ),
+                }
+              ]} 
+              dataSource={materials} 
+              rowKey="id" 
+              loading={loading} 
+              className="designer-table"
+              pagination={{ pageSize: 12, position: ['bottomCenter'] } as any}
+            />
+          </div>
         </div>
       )
     },

@@ -309,7 +309,7 @@ export default function OrdersPage() {
 
       <div className="premium-shadow rounded-[32px] overflow-hidden bg-white border border-slate-100">
         <Table 
-          sticky={{ offsetHeader: 72 }}
+          
           columns={columns} 
           dataSource={filteredData} 
           rowKey="id" 

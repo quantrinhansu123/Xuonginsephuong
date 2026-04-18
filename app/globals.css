@@ -228,12 +228,6 @@ h1, h2, h3, h4, h5, h6, .ant-typography-title, strong, b, .font-black, .font-bol
   }
 }
 
-/* AntD Sticky Header Offset */
-.ant-table-sticky-header {
-  top: 72px !important;
-  z-index: 10 !important;
-}
-
 @media (max-width: 640px) {
   .animate-in {
     padding: 12px !important;

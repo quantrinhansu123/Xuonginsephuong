@@ -171,6 +171,15 @@ export default function MainLayout({ children, portal }: MainLayoutProps) {
     }
   };
 
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 992);
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   if (!user) return null;
 
   return (
@@ -183,7 +192,7 @@ export default function MainLayout({ children, portal }: MainLayoutProps) {
         collapsedWidth="0"
         onCollapse={(value) => setCollapsed(value)}
         theme="light" 
-        className="premium-sidebar border-none shadow-2xl z-20" 
+        className={`premium-sidebar border-none shadow-2xl z-30 transition-all duration-310`}
         width={260}
         style={{ 
           position: 'fixed', 
@@ -219,10 +228,19 @@ export default function MainLayout({ children, portal }: MainLayoutProps) {
           />
         </div>
       </Sider>
-      <Layout className="bg-transparent">
+      <Layout 
+        className="bg-transparent transition-all duration-300" 
+        style={{ marginLeft: isMobile ? 0 : (collapsed ? 0 : 260) }}
+      >
         <Header 
           className="sticky top-0 p-0 flex items-center justify-between px-8 z-10 transition-all duration-300 glass-header" 
-          style={{ height: 72, background: 'rgba(248, 250, 252, 0.8)', backdropFilter: 'blur(12px)', borderBottom: '1px solid rgba(226, 232, 240, 0.5)' }}
+          style={{ 
+            height: 72, 
+            background: 'rgba(255, 255, 255, 0.8)', 
+            backdropFilter: 'blur(12px)', 
+            borderBottom: '1px solid rgba(226, 232, 240, 0.5)',
+            width: '100%'
+          }}
         >
           <div className="flex items-center gap-4">
             <Button 
@@ -253,8 +271,8 @@ export default function MainLayout({ children, portal }: MainLayoutProps) {
             </Dropdown>
           </div>
         </Header>
-        <Content className="m-8 animate-in">
-          <div className="min-h-[calc(100vh-136px)]">
+        <Content className="m-4 sm:m-8 animate-in">
+          <div className="min-h-[calc(100vh-160px)] pt-2">
             {children}
           </div>
         </Content>
