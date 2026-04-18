@@ -127,7 +127,7 @@ export default function TasksPage() {
       key: 'order',
       onCell: () => ({ 'data-label': 'Lệnh in' } as any),
       render: (_: any, record: any) => (
-        <Space direction="vertical" size={0} className="text-left">
+        <Space orientation="vertical" size={0} className="text-left">
           <Text strong className="text-blue-600 font-mono tracking-tighter">{record.production_orders?.code}</Text>
           <Text className="text-[11px] text-slate-400 font-bold uppercase truncate max-w-[200px]">{record.production_orders?.title}</Text>
         </Space>
@@ -277,7 +277,7 @@ export default function TasksPage() {
           dataSource={data} 
           rowKey="id" 
           loading={loading}
-          pagination={{ pageSize: 12, position: ['bottomCenter'] } as any}
+          pagination={{ pageSize: 12, placement: 'bottomCenter' } as any}
           className="designer-table"
           locale={{ emptyText: <Empty description="Hiện không có nhiệm vụ nào" /> }}
         />

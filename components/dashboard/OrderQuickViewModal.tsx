@@ -184,7 +184,7 @@ export default function OrderQuickViewModal({
       children: (
         <div className="p-8 animate-in">
           <Steps
-            direction="vertical"
+            orientation="vertical"
             current={getCurrentStep()}
             className="premium-steps"
             items={tasks.map((task, idx) => ({

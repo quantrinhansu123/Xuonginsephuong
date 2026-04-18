@@ -314,7 +314,7 @@ export default function OrdersPage() {
           dataSource={filteredData} 
           rowKey="id" 
           loading={loading}
-          pagination={{ pageSize: 12, position: ['bottomCenter'] } as any}
+          pagination={{ pageSize: 12, placement: 'bottomCenter' } as any}
           className="designer-table"
         />
       </div>

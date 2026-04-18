@@ -183,7 +183,7 @@ export default function MachinesPage() {
           rowKey="id" 
           loading={loading} 
           className="designer-table"
-          pagination={{ pageSize: 12, position: ['bottomCenter'] } as any}
+          pagination={{ pageSize: 12, placement: 'bottomCenter' } as any}
         />
       </div>
 

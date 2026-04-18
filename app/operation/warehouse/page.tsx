@@ -170,7 +170,7 @@ export default function WarehousePage() {
             { title: 'Thời gian', dataIndex: 'created_at', key: 'created_at', render: (d: string) => dayjs(d).format('DD/MM HH:mm') },
             { title: 'Vật tư', dataIndex: ['materials', 'name'], key: 'material' },
             { title: 'LSX Liên kết', dataIndex: ['production_orders', 'code'], key: 'lsx', render: (v: string) => v ? <Tag color="blue">{v}</Tag> : '---' },
-            { title: 'Số lượng', dataIndex: 'quantity', key: 'quantity', align: 'right' as const, render: (q: number, r: any) => <Text strong color={r.type === 'import' ? 'green' : 'red'}>{r.type === 'import' ? '+' : '-'}{q.toLocaleString()}</Text> },
+            { title: 'Số lượng', dataIndex: 'quantity', key: 'quantity', align: 'right' as const, render: (q: number, r: any) => <Text strong className={r.type === 'import' ? 'text-emerald-600' : 'text-rose-600'}>{r.type === 'import' ? '+' : '-'}{q.toLocaleString()}</Text> },
             { title: 'Ghi chú/Lý do', dataIndex: 'reason', key: 'reason', ellipsis: true }
           ]} 
           dataSource={logs} 

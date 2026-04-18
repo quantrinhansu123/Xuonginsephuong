@@ -207,7 +207,7 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
           <Row gutter={[32, 24]}>
             <Col span={12}>
               <Card size="small" title="Thông số kỹ thuật" className="h-full border-blue-100 shadow-sm ui-soft-surface">
-                <Space direction="vertical" className="w-full">
+                <Space orientation="vertical" className="w-full">
                   <div className="flex justify-between border-b pb-2">
                     <Text type="secondary">Nội dung:</Text>
                     <Text strong>{order?.title}</Text>
@@ -229,7 +229,7 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
             </Col>
             <Col span={12}>
               <Card size="small" title="Khách hàng & Hạn chót" className="h-full border-blue-100 shadow-sm ui-soft-surface">
-                <Space direction="vertical" className="w-full">
+                <Space orientation="vertical" className="w-full">
                   <div className="flex justify-between border-b pb-2">
                     <Text type="secondary">Khách hàng:</Text>
                     <Text strong>{order?.customers?.name || '---'}</Text>
@@ -265,7 +265,7 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
           </div>
 
           <Steps
-            direction="vertical"
+            orientation="vertical"
             current={tasks.findIndex(t => t.status !== 'done')}
             items={tasks.map((task, idx) => ({
               title: task.departments?.name,

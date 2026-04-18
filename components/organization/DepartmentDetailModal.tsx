@@ -315,12 +315,12 @@ export default function DepartmentDetailModal({ visible, department, onClose, on
             </Col>
             <Col span={8}>
               <Card size="small" className="bg-green-50 border-green-100 text-center">
-                <Statistic title="Đang hoạt động" value={staff.filter(s => s.is_active !== false).length} valueStyle={{ color: '#52c41a', fontWeight: 'bold' }} />
+                <Statistic title="Đang hoạt động" value={staff.filter(s => s.is_active !== false).length} styles={{ content: { color: '#52c41a', fontWeight: 'bold' } }} />
               </Card>
             </Col>
             <Col span={8}>
               <Card size="small" className="bg-orange-50 border-orange-100 text-center">
-                <Statistic title="Nghỉ/Chuyển" value={staff.filter(s => s.is_active === false).length} valueStyle={{ color: '#fa8c16', fontWeight: 'bold' }} />
+                <Statistic title="Nghỉ/Chuyển" value={staff.filter(s => s.is_active === false).length} styles={{ content: { color: '#fa8c16', fontWeight: 'bold' } }} />
               </Card>
             </Col>
           </Row>
@@ -345,12 +345,12 @@ export default function DepartmentDetailModal({ visible, department, onClose, on
           <Row gutter={16} className="mb-4">
             <Col span={12}>
               <Card size="small" className="bg-green-50 border-green-100 text-center">
-                <Statistic title="Máy hoạt động" value={machines.filter(m => m.status === 'active').length} valueStyle={{ color: '#52c41a', fontWeight: 'bold' }} />
+                <Statistic title="Máy hoạt động" value={machines.filter(m => m.status === 'active').length} styles={{ content: { color: '#52c41a', fontWeight: 'bold' } }} />
               </Card>
             </Col>
             <Col span={12}>
               <Card size="small" className="bg-red-50 border-red-100 text-center">
-                <Statistic title="Đang bảo trì" value={machines.filter(m => m.status !== 'active').length} valueStyle={{ color: '#f5222d', fontWeight: 'bold' }} />
+                <Statistic title="Đang bảo trì" value={machines.filter(m => m.status !== 'active').length} styles={{ content: { color: '#f5222d', fontWeight: 'bold' } }} />
               </Card>
             </Col>
           </Row>

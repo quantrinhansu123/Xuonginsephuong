@@ -54,7 +54,7 @@ export default function MachineDetailModal({ visible, machine, departments, onCl
   }, [visible, machine, form]);
 
   const fetchMaintenanceLogs = async () => {
-    if (!machine) return;
+    if (!machine?.id) return;
     setLoadingLogs(true);
     try {
       const { data, error } = await supabase
@@ -64,10 +64,13 @@ export default function MachineDetailModal({ visible, machine, departments, onCl
         .order('created_at', { ascending: false })
         .limit(10);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Supabase error fetching logs:', error.message, error.details);
+        return;
+      }
       setMaintenanceLogs(data || []);
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error('Unexpected error fetching maintenance logs:', err);
     } finally {
       setLoadingLogs(false);
     }
@@ -92,9 +95,9 @@ export default function MachineDetailModal({ visible, machine, departments, onCl
       }
       onRefresh?.();
       onClose();
-    } catch (err) {
-      console.error(err);
-      message.error('Lỗi khi lưu thông tin');
+    } catch (err: any) {
+      console.error('Error saving machine:', err.message || err);
+      message.error(`Lỗi khi lưu: ${err.message || 'Không xác định'}`);
     } finally {
       setSaving(false);
     }
@@ -111,8 +114,9 @@ export default function MachineDetailModal({ visible, machine, departments, onCl
       message.success('Đã xóa máy');
       onRefresh?.();
       onClose();
-    } catch (err) {
-      message.error('Lỗi khi xóa máy');
+    } catch (err: any) {
+      console.error('Error deleting machine:', err.message || err);
+      message.error(`Lỗi khi xóa: ${err.message || 'Không xác định'}`);
     } finally {
       setDeleting(false);
     }
