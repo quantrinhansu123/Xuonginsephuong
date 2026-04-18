@@ -185,60 +185,65 @@ export default function TasksPage() {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+    <div className="space-y-8 max-w-[1600px] mx-auto animate-in">
+      <div className="flex justify-between items-end">
         <div>
-          <Title level={3} className="m-0">Nhiệm vụ sản xuất: {user?.departments?.name}</Title>
-          <Text type="secondary">
-            <EnvironmentOutlined /> {user?.department_id === 7 ? 'Giám sát vật tư & Nhiệm vụ kho' : 'Đang hiển thị công việc thuộc bộ phận của bạn'}
-          </Text>
+          <Title level={2} className="m-0 font-black tracking-tight text-slate-900">
+            PRODUCTION <span className="text-indigo-600">TASKS</span>
+          </Title>
+          <div className="flex items-center gap-2 mt-2">
+            <div className="h-1 w-8 bg-indigo-600 rounded-full" />
+            <Text className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+               {user?.departments?.name} • {user?.department_id === 7 ? 'GIÁM SÁT VẬT TƯ' : 'NHIỆM VỤ SẢN XUẤT'}
+            </Text>
+          </div>
         </div>
-        <Space>
-          <Button icon={<FileExcelOutlined />} onClick={exportToExcel}>Excel</Button>
-          <Button icon={<FilePdfOutlined />} onClick={exportToPDF}>PDF</Button>
-          <Button icon={<ReloadOutlined />} onClick={fetchTasks} loading={loading}>Làm mới</Button>
-        </Space>
+        <div className="flex items-center gap-3">
+          <Button icon={<FileExcelOutlined />} onClick={exportToExcel} className="h-12 px-6 rounded-2xl font-bold border-slate-200">EXCEL</Button>
+          <Button icon={<ReloadOutlined />} onClick={fetchTasks} loading={loading} className="h-12 w-12 flex items-center justify-center rounded-2xl border-slate-200" />
+        </div>
       </div>
 
-      <Card className="shadow-sm border-none p-2">
-        <Row gutter={16} align="middle" className="mb-4">
-          <Col span={12}>
-            <Input 
-              prefix={<SearchOutlined />} 
-              placeholder="Tìm theo mã lệnh, nội dung in..." 
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              onPressEnter={fetchTasks}
-              allowClear
-            />
-          </Col>
-          <Col span={8}>
-            <Select 
-              className="w-full" 
-              value={statusFilter} 
-              onChange={setStatusFilter}
-              suffixIcon={<FilterOutlined />}
-            >
-              <Option value="all">Tất cả trạng thái</Option>
-              <Option value="ready">Chờ nhận việc</Option>
-              <Option value="in_progress">Đang làm</Option>
-              <Option value="done">Hoàn thành</Option>
-              <Option value="issue">Có sự cố</Option>
-              <Option value="on_hold">Tạm hoãn</Option>
-            </Select>
-          </Col>
-        </Row>
+      <div className="glass-card p-4 rounded-[28px] grid grid-cols-12 gap-4 items-center">
+        <div className="col-span-8">
+          <Input 
+            prefix={<SearchOutlined className="text-slate-400" />} 
+            placeholder="Tìm theo mã lệnh, nội dung in..." 
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            onPressEnter={fetchTasks}
+            className="premium-select h-11"
+            allowClear
+          />
+        </div>
+        <div className="col-span-4">
+          <Select 
+            className="w-full premium-select" 
+            value={statusFilter} 
+            onChange={setStatusFilter}
+          >
+            <Option value="all">TẤT CẢ TRẠNG THÁI</Option>
+            <Option value="ready">CHỜ NHẬN VIỆC</Option>
+            <Option value="in_progress">ĐANG LÀM</Option>
+            <Option value="done">HOÀN THÀNH</Option>
+            <Option value="issue">CÓ SỰ CỐ</Option>
+            <Option value="on_hold">TẠM HOÃN</Option>
+          </Select>
+        </div>
+      </div>
 
+      <div className="premium-shadow rounded-[32px] overflow-hidden bg-white">
         <Table 
           columns={columns} 
           dataSource={data} 
           rowKey="id" 
           loading={loading}
-          pagination={{ pageSize: 12 }}
-          className="custom-table"
+          pagination={{ pageSize: 12, position: ['bottomCenter'] }}
+          className="designer-table"
           locale={{ emptyText: <Empty description="Không có nhiệm vụ nào cần xử lý" /> }}
+          scroll={{ x: 'max-content' }}
         />
-      </Card>
+      </div>
 
       <TaskActionModal 
         visible={actionModalVisible} 
@@ -246,13 +251,6 @@ export default function TasksPage() {
         onClose={() => setActionModalVisible(false)} 
         onRefresh={fetchTasks} 
       />
-
-      <style jsx global>{`
-        .custom-table .ant-table-thead > tr > th {
-          background-color: #f8fafc;
-          font-weight: 600;
-        }
-      `}</style>
     </div>
   );
 }

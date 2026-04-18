@@ -173,7 +173,7 @@ export default function CreateOrderModal({ visible, onClose }: CreateOrderModalP
       cancelText="Hủy"
       wrapClassName="designer-modal"
     >
-      <Spin spinning={loading} tip="Đang tải dữ liệu...">
+      <Spin spinning={loading} description="Đang tải dữ liệu...">
         <Form
           form={form}
           layout="vertical"

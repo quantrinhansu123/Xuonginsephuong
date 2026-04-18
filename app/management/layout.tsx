@@ -65,7 +65,7 @@ export default function ManagementLayout({
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Spin size="large" tip="Đang kiểm tra quyền truy cập..." />
+        <Spin size="large" description="Đang kiểm tra quyền truy cập..." />
       </div>
     );
   }

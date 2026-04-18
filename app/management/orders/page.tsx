@@ -225,73 +225,78 @@ export default function OrdersPage() {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="ui-surface flex justify-between items-center p-5">
+    <div className="space-y-8 max-w-[1600px] mx-auto animate-in">
+      <div className="flex justify-between items-end">
         <div>
-          <Title level={3} className="m-0 ui-section-title">Lệnh Sản Xuất</Title>
-          <Text type="secondary">Quản lý và theo dõi tiến độ các đơn hàng sản xuất</Text>
+          <Title level={2} className="m-0 font-black tracking-tight text-slate-900">
+            MASTER <span className="text-indigo-600">ORDERS</span>
+          </Title>
+          <div className="flex items-center gap-2 mt-2">
+            <div className="h-1 w-8 bg-indigo-600 rounded-full" />
+            <Text className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Điều hành sản xuất • Quản lý tiến độ & Tài chính</Text>
+          </div>
         </div>
-        <Space size="middle">
-          <Button icon={<FileExcelOutlined />} onClick={exportToExcel}>Xuất Excel ({filteredData.length})</Button>
-          <Button icon={<FilePdfOutlined />} onClick={exportToPDF}>Xuất PDF</Button>
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateModalVisible(true)}>
-            Lên Lệnh Mới
+        <div className="flex items-center gap-3">
+          <Button icon={<FileExcelOutlined />} onClick={exportToExcel} className="h-12 px-6 rounded-2xl font-bold border-slate-200">XUẤT EXCEL</Button>
+          <Button icon={<FilePdfOutlined />} onClick={exportToPDF} className="h-12 px-6 rounded-2xl font-bold border-slate-200">XUẤT PDF</Button>
+          <Button 
+            type="primary" 
+            icon={<PlusOutlined />} 
+            onClick={() => setCreateModalVisible(true)}
+            className="h-12 px-8 rounded-2xl font-bold shadow-indigo-200 shadow-lg"
+          >
+            LÊN LỆNH MỚI
           </Button>
-        </Space>
+        </div>
       </div>
 
-      <Card className="ui-surface border-none p-2" bodyStyle={{ padding: 18 }}>
-        <Row gutter={16} align="middle" className="mb-4">
-          <Col span={6}>
-            <Input 
-              prefix={<SearchOutlined />} 
-              placeholder="Tìm theo mã đơn, khách hàng, nội dung..." 
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              onPressEnter={fetchOrders}
-              allowClear
-            />
-          </Col>
-          <Col span={4}>
-            <Select 
-              className="w-full" 
-              value={statusFilter} 
-              onChange={setStatusFilter}
-              suffixIcon={<FilterOutlined />}
-            >
-              <Option value="all">Tất cả trạng thái</Option>
-              <Option value="pending">Chờ xử lý</Option>
-              <Option value="in_progress">Đang sản xuất</Option>
-              <Option value="completed">Đã hoàn thành</Option>
-            </Select>
-          </Col>
-          <Col span={8}>
-            <RangePicker 
-              className="w-full" 
-              placeholder={['Từ ngày', 'Đến ngày']}
-              onChange={(dates) => setDateRange(dates as any)}
-            />
-          </Col>
-          <Col span={4}>
-            <Button icon={<ReloadOutlined />} onClick={fetchOrders} block>Làm mới</Button>
-          </Col>
-        </Row>
-
-        <div className="mb-4 flex items-center justify-between">
-          <Tag color="blue" className="px-3 py-1 font-medium">Đang hiển thị: {filteredData.length} / {data.length} đơn hàng</Tag>
-          <Text type="secondary">Dữ liệu cập nhật theo thời gian thực</Text>
+      <div className="glass-card p-4 rounded-[28px] grid grid-cols-12 gap-4 items-center">
+        <div className="col-span-4">
+          <Input 
+            prefix={<SearchOutlined className="text-slate-400" />} 
+            placeholder="Mã đơn, khách hàng, nội dung..." 
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            onPressEnter={fetchOrders}
+            className="premium-select h-11"
+            allowClear
+          />
         </div>
+        <div className="col-span-3">
+          <Select 
+            className="w-full premium-select" 
+            value={statusFilter} 
+            onChange={setStatusFilter}
+          >
+            <Option value="all">TẤT CẢ TRẠNG THÁI</Option>
+            <Option value="pending">CHỜ XỨ LÝ</Option>
+            <Option value="in_progress">ĐANG SẢN XUẤT</Option>
+            <Option value="completed">ĐÃ HOÀN THÀNH</Option>
+          </Select>
+        </div>
+        <div className="col-span-3">
+          <RangePicker 
+            className="w-full premium-datepicker" 
+            placeholder={['Từ ngày', 'Đến ngày']}
+            onChange={(dates) => setDateRange(dates as any)}
+          />
+        </div>
+        <div className="col-span-2">
+          <Button icon={<ReloadOutlined />} onClick={fetchOrders} className="h-11 w-full rounded-xl border-slate-200 font-bold" block>LÀM MỚI</Button>
+        </div>
+      </div>
 
+      <div className="premium-shadow rounded-[32px] overflow-hidden bg-white">
         <Table 
           columns={columns} 
           dataSource={filteredData} 
           rowKey="id" 
           loading={loading}
-          pagination={{ pageSize: 12, showSizeChanger: true, showTotal: (total) => `Tổng ${total} đơn hàng` }}
+          pagination={{ pageSize: 12, position: ['bottomCenter'] }}
           className="designer-table"
-          scroll={{ x: 1200 }}
+          scroll={{ x: 'max-content' }}
         />
-      </Card>
+      </div>
 
       <CreateOrderModal visible={createModalVisible} onClose={() => { setCreateModalVisible(false); fetchOrders(); }} />
       <OrderDetailModal visible={detailModalVisible} order={selectedOrder} onClose={() => setDetailModalVisible(false)} />

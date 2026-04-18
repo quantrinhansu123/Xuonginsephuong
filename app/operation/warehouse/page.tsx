@@ -101,7 +101,7 @@ export default function WarehousePage() {
       if (updateError) throw updateError;
 
       message.success('Đã cập nhật giao dịch kho');
-      setModalVisible(false);
+      setTransactionModalVisible(false);
       form.resetFields();
       fetchData();
     } catch (err) {
@@ -307,6 +307,3 @@ export default function WarehousePage() {
   }
 }
 
-function setModalVisible(arg0: boolean) {
-  throw new Error('Function not implemented.');
-}

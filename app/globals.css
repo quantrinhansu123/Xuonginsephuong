@@ -53,29 +53,64 @@ body {
   color: #0f172a;
 }
 
+/* Premium UI Components */
+.premium-segmented.ant-segmented {
+  background: #f1f5f9;
+  border-radius: 16px;
+  padding: 4px;
+}
+.premium-segmented .ant-segmented-item {
+  border-radius: 12px;
+  font-weight: 700;
+  transition: all 0.3s;
+}
+.premium-segmented .ant-segmented-item-selected {
+  background: #ffffff !important;
+  color: #6366f1 !important;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.12) !important;
+}
+
+.premium-select .ant-select-selector,
+.premium-datepicker {
+  border-radius: 12px !important;
+  border-color: #e2e8f0 !important;
+  height: 44px !important;
+  display: flex !important;
+  align-items: center !important;
+  transition: all 0.2s !important;
+}
+.premium-select .ant-select-selector:hover,
+.premium-datepicker:hover {
+  border-color: #6366f1 !important;
+}
+
 /* Designer Table Overrides */
 .designer-table .ant-table {
   border: none !important;
-  border-radius: 20px !important;
+  border-radius: 28px !important;
   overflow: hidden;
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.04);
 }
 
 .designer-table .ant-table-thead > tr > th {
   background: #f8fafc !important;
-  font-weight: 700 !important;
+  font-weight: 900 !important;
   text-transform: uppercase !important;
-  font-size: 11px !important;
-  letter-spacing: 0.05em !important;
-  color: #64748b !important;
+  font-size: 10px !important;
+  letter-spacing: 0.1em !important;
+  color: #94a3b8 !important;
   border-bottom: 1px solid #f1f5f9 !important;
+  padding: 18px 24px !important;
 }
 
 .designer-table .ant-table-tbody > tr > td {
   border-bottom: 1px solid #f8fafc !important;
+  padding: 16px 24px !important;
+  transition: all 0.2s;
 }
 
 .designer-table .ant-table-row:hover > td {
-  background: #f1f5f9 !important;
+  background: #f8fafc !important;
 }
 
 /* Custom Scrollbar */
@@ -99,10 +134,19 @@ body {
 
 /* High-end Animations */
 @keyframes fadeInSlideUp {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
 .animate-in {
-  animation: fadeInSlideUp 0.5s ease-out forwards;
+  animation: fadeInSlideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s infinite;
+}
+
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.02); }
 }

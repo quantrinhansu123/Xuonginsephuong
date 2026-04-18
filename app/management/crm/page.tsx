@@ -215,98 +215,96 @@ export default function CrmPage() {
   ];
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+    <div className="space-y-8 max-w-[1600px] mx-auto animate-in">
+      <div className="flex justify-between items-end">
         <div>
-          <Title level={3} className="m-0">Quản lý Khách hàng (CRM)</Title>
-          <Text type="secondary">Quản lý thông tin, đơn hàng và công nợ khách hàng</Text>
+          <Title level={2} className="m-0 font-black tracking-tight text-slate-900">
+            MASTER <span className="text-indigo-600">CRM</span>
+          </Title>
+          <div className="flex items-center gap-2 mt-2">
+            <div className="h-1 w-8 bg-indigo-600 rounded-full" />
+            <Text className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Quản lý đối tác • Phân tích công nợ & doanh thu</Text>
+          </div>
         </div>
-        <Space size="middle">
-          <Button icon={<FileExcelOutlined />} onClick={exportToExcel}>Xuất Excel ({filteredData.length})</Button>
-          <Button icon={<FilePdfOutlined />} onClick={exportToPDF}>Xuất PDF</Button>
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => { setSelectedCustomer(null); setModalVisible(true); }}>
-            Thêm Khách hàng
+        <div className="flex items-center gap-3">
+          <Button icon={<FileExcelOutlined />} onClick={exportToExcel} className="h-12 px-6 rounded-2xl font-bold border-slate-200">XUẤT EXCEL</Button>
+          <Button icon={<FilePdfOutlined />} onClick={exportToPDF} className="h-12 px-6 rounded-2xl font-bold border-slate-200">XUẤT PDF</Button>
+          <Button 
+            type="primary" 
+            icon={<PlusOutlined />} 
+            onClick={() => { setSelectedCustomer(null); setModalVisible(true); }}
+            className="h-12 px-8 rounded-2xl font-bold shadow-indigo-200 shadow-lg"
+          >
+            THÊM KHÁCH HÀNG
           </Button>
-        </Space>
+        </div>
       </div>
 
-      <Card className="shadow-sm border-none p-2">
-        <Row gutter={16} align="middle" className="mb-4">
-          <Col span={8}>
-            <Input 
-              prefix={<SearchOutlined />} 
-              placeholder="Tìm theo tên, mã KH, số điện thoại..." 
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              onPressEnter={fetchCustomers}
-              allowClear
-            />
-          </Col>
-          <Col span={4}>
-            <Select 
-              className="w-full" 
-              value={categoryFilter} 
-              onChange={setCategoryFilter}
-              suffixIcon={<FilterOutlined />}
-            >
-              <Option value="all">Tất cả phân loại</Option>
-              <Option value="Khách lẻ">Khách lẻ</Option>
-              <Option value="Khách VIP">Khách VIP</Option>
-              <Option value="Đại lý">Đại lý</Option>
-            </Select>
-          </Col>
-          <Col span={4}>
-            <Select 
-              className="w-full" 
-              value={debtFilter} 
-              onChange={setDebtFilter}
-              suffixIcon={<FilterOutlined />}
-              placeholder="Công nợ"
-            >
-              <Option value="all">Tất cả công nợ</Option>
-              <Option value="no_debt">Không nợ</Option>
-              <Option value="has_debt">Đang nợ</Option>
-              <Option value="high_debt">Nợ cao (&gt; 10tr)</Option>
-            </Select>
-          </Col>
-          <Col span={6}>
-            <RangePicker 
-              className="w-full" 
-              placeholder={['Từ ngày', 'Đến ngày']}
-              onChange={(dates) => setDateRange(dates as any)}
-            />
-          </Col>
-          <Col span={2}>
-            <Button icon={<ReloadOutlined />} onClick={fetchCustomers} block>Làm mới</Button>
-          </Col>
-        </Row>
-
-        <div className="mb-4">
-          <Tag color="blue">Đang hiển thị: {filteredData.length} / {data.length} khách hàng</Tag>
+      <div className="glass-card p-4 rounded-[28px] grid grid-cols-12 gap-4 items-center">
+        <div className="col-span-4">
+          <Input 
+            prefix={<SearchOutlined className="text-slate-400" />} 
+            placeholder="Tìm theo tên, mã KH, số điện thoại..." 
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            onPressEnter={fetchCustomers}
+            className="premium-select h-11"
+            allowClear
+          />
         </div>
+        <div className="col-span-2">
+          <Select 
+            className="w-full premium-select" 
+            value={categoryFilter} 
+            onChange={setCategoryFilter}
+          >
+            <Option value="all">Tất cả phân loại</Option>
+            <Option value="Khách lẻ">Khách lẻ</Option>
+            <Option value="Khách VIP">Khách VIP</Option>
+            <Option value="Đại lý">Đại lý</Option>
+          </Select>
+        </div>
+        <div className="col-span-2">
+          <Select 
+            className="w-full premium-select" 
+            value={debtFilter} 
+            onChange={setDebtFilter}
+          >
+            <Option value="all">Tất cả công nợ</Option>
+            <Option value="no_debt">Không nợ</Option>
+            <Option value="has_debt">Đang nợ</Option>
+            <Option value="high_debt">Nợ cao (&gt; 10tr)</Option>
+          </Select>
+        </div>
+        <div className="col-span-3">
+          <RangePicker 
+            className="w-full premium-datepicker" 
+            placeholder={['Từ ngày', 'Đến ngày']}
+            onChange={(dates) => setDateRange(dates as any)}
+          />
+        </div>
+        <div className="col-span-1">
+          <Button icon={<ReloadOutlined />} onClick={fetchCustomers} className="h-11 w-full rounded-xl border-slate-200" />
+        </div>
+      </div>
 
+      <div className="premium-shadow rounded-[32px] overflow-hidden bg-white">
         <Table 
           columns={columns} 
           dataSource={filteredData} 
           rowKey="id" 
           loading={loading}
-          pagination={{ pageSize: 12, showSizeChanger: true, showTotal: (total) => `Tổng ${total} khách hàng` }}
-          className="custom-table"
+          pagination={{ pageSize: 12, position: ['bottomCenter'] }}
+          className="designer-table"
+          scroll={{ x: 'max-content' }}
         />
-      </Card>
+      </div>
 
       <CustomerDetailModal 
         visible={modalVisible} 
         customer={selectedCustomer} 
         onClose={() => { setModalVisible(false); fetchCustomers(); }} 
       />
-
-      <style jsx global>{`
-        .custom-table .ant-table-thead > tr > th {
-          background-color: #f8fafc;
-          font-weight: 600;
-        }
-      `}</style>
     </div>
   );
 }

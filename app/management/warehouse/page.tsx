@@ -120,69 +120,77 @@ export default function WarehousePage() {
   const tabItems = [
     {
       key: '1',
-      label: <span><DatabaseOutlined /> Tồn kho thực tế</span>,
+      label: <span className="px-4"><DatabaseOutlined /> Tồn kho thực tế</span>,
       children: (
-        <Table 
-          columns={[
-            { title: 'Vật tư', dataIndex: 'name', key: 'name', render: (t: string) => <Text strong>{t}</Text> },
-            { title: 'Đơn vị', dataIndex: 'unit', key: 'unit' },
-            { 
-              title: 'Tồn kho', 
-              dataIndex: 'stock_quantity', 
-              key: 'stock_quantity', 
-              render: (q: number, record: any) => (
-                <Text strong className={q <= record.min_stock ? 'text-red-600' : 'text-blue-600'}>
-                  {q.toLocaleString()}
-                </Text>
-              )
-            },
-            { title: 'Ngưỡng t.thiểu', dataIndex: 'min_stock', key: 'min_stock' },
-            { 
-              title: 'Trạng thái', 
-              key: 'status',
-              render: (_: any, record: any) => (
-                record.stock_quantity <= record.min_stock 
-                  ? <Tag color="red" icon={<WarningOutlined />}>BÁO ĐỘNG HẾT HÀNG</Tag> 
-                  : <Tag color="green">ĐỦ HÀNG</Tag>
-              )
-            },
-            {
-              title: 'Thao tác',
-              key: 'action',
-              width: 80,
-              render: (_: any, record: any) => (
-                <Button type="text" icon={<EyeOutlined />} onClick={() => handleMaterialClick(record)} />
-              ),
-            }
-          ]} 
-          dataSource={materials} 
-          rowKey="id" 
-          loading={loading} 
-        />
+        <div className="premium-shadow rounded-[28px] overflow-hidden bg-white mt-4 border border-slate-100">
+          <Table 
+            columns={[
+              { title: 'Vật tư', dataIndex: 'name', key: 'name', render: (t: string) => <Text strong className="text-slate-900">{t}</Text> },
+              { title: 'Đơn vị', dataIndex: 'unit', key: 'unit' },
+              { 
+                title: 'Tồn kho', 
+                dataIndex: 'stock_quantity', 
+                key: 'stock_quantity', 
+                render: (q: number, record: any) => (
+                  <Text strong className={q <= record.min_stock ? 'text-rose-600' : 'text-indigo-600 font-mono text-lg'}>
+                    {q.toLocaleString()}
+                  </Text>
+                )
+              },
+              { title: 'Ngưỡng t.thiểu', dataIndex: 'min_stock', key: 'min_stock', render: (v: number) => <Text className="text-slate-400 font-mono">{v}</Text> },
+              { 
+                title: 'Trạng thái', 
+                key: 'status',
+                render: (_: any, record: any) => (
+                  record.stock_quantity <= record.min_stock 
+                    ? <Tag color="rose" className="border-none font-black px-3 rounded-full uppercase text-[10px]">Cần nhập hàng</Tag> 
+                    : <Tag color="emerald" className="border-none font-black px-3 rounded-full uppercase text-[10px]">An toàn</Tag>
+                )
+              },
+              {
+                title: '',
+                key: 'action',
+                width: 60,
+                render: (_: any, record: any) => (
+                  <Button type="text" icon={<EyeOutlined className="text-slate-400 hover:text-indigo-600" />} onClick={() => handleMaterialClick(record)} />
+                ),
+              }
+            ]} 
+            dataSource={materials} 
+            rowKey="id" 
+            loading={loading} 
+            className="designer-table"
+            pagination={{ pageSize: 12, position: ['bottomCenter'] }}
+          />
+        </div>
       )
     },
     {
       key: '2',
-      label: <span><HistoryOutlined /> Nhật ký cấp phát</span>,
+      label: <span className="px-4"><HistoryOutlined /> Nhật ký cấp phát</span>,
       children: (
-        <Table 
-          columns={[
-            { title: 'Thời gian', dataIndex: 'created_at', key: 'created_at', render: (d: string) => dayjs(d).format('DD/MM HH:mm') },
-            { title: 'Vật tư', dataIndex: ['materials', 'name'], key: 'material' },
-            { title: 'LSX Liên kết', dataIndex: ['production_orders', 'code'], key: 'lsx', render: (v: string) => v ? <Tag color="blue">{v}</Tag> : '---' },
-            { title: 'Số lượng', dataIndex: 'quantity', key: 'quantity', align: 'right' as const, render: (q: number, r: any) => <Text strong color={r.type === 'import' ? 'green' : 'red'}>{r.type === 'import' ? '+' : '-'}{q.toLocaleString()}</Text> },
-            { title: 'Ghi chú/Lý do', dataIndex: 'reason', key: 'reason', ellipsis: true }
-          ]} 
-          dataSource={logs} 
-          rowKey="id" 
-          loading={loading} 
-        />
+        <div className="premium-shadow rounded-[28px] overflow-hidden bg-white mt-4 border border-slate-100">
+          <Table 
+            columns={[
+              { title: 'Thời gian', dataIndex: 'created_at', key: 'created_at', render: (d: string) => <Text className="text-slate-400 font-mono text-xs">{dayjs(d).format('DD/MM HH:mm')}</Text> },
+              { title: 'Vật tư', dataIndex: ['materials', 'name'], key: 'material', render: (t: string) => <Text strong className="text-slate-800">{t}</Text> },
+              { title: 'LSX Liên kết', dataIndex: ['production_orders', 'code'], key: 'lsx', render: (v: string) => v ? <Tag color="indigo" className="font-mono font-bold border-none">{v}</Tag> : <Text className="text-slate-300">---</Text> },
+              { title: 'Số lượng', dataIndex: 'quantity', key: 'quantity', align: 'right' as const, render: (q: number, r: any) => <Text strong className={r.type === 'import' ? 'text-emerald-600' : 'text-rose-600'}>{r.type === 'import' ? '+' : '-'}{q.toLocaleString()}</Text> },
+              { title: 'Ghi chú/Lý do', dataIndex: 'reason', key: 'reason', ellipsis: true, render: (t: string) => <Text className="text-slate-500 italic">{t}</Text> }
+            ]} 
+            dataSource={logs} 
+            rowKey="id" 
+            loading={loading} 
+            className="designer-table"
+            pagination={{ pageSize: 12, position: ['bottomCenter'] }}
+          />
+        </div>
       )
     },
     {
       key: '3',
-      label: <span><CalculatorOutlined /> Quy đổi A4</span>,
-      children: <div className="max-w-4xl mx-auto py-10"><A4Calculator /></div>
+      label: <span className="px-4"><CalculatorOutlined /> Quy đổi A4</span>,
+      children: <div className="max-w-4xl mx-auto py-10 animate-in"><A4Calculator /></div>
     }
   ];
 
@@ -203,16 +211,28 @@ export default function WarehousePage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+    <div className="space-y-8 max-w-[1600px] mx-auto animate-in">
+      <div className="flex justify-between items-end">
         <div>
-          <Title level={2} className="m-0 bg-gradient-to-r from-blue-700 to-indigo-700 bg-clip-text text-transparent">KHO VẬT TƯ CHI TIẾT</Title>
-          <Text type="secondary">Cảnh báo tồn kho tối thiểu và liên kết cấp phát LSX</Text>
+          <Title level={2} className="m-0 font-black tracking-tight text-slate-900">
+            MASTER <span className="text-indigo-600">WAREHOUSE</span>
+          </Title>
+          <div className="flex items-center gap-2 mt-2">
+            <div className="h-1 w-8 bg-indigo-600 rounded-full" />
+            <Text className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Kiểm soát vật tư • Định mức & Điều phối tồn kho</Text>
+          </div>
         </div>
-        <Space size="middle">
-          <Button icon={<FileExcelOutlined />} onClick={exportMaterialsToExcel} shape="round">Xuất Excel</Button>
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setTransactionModalVisible(true)} shape="round" className="bg-blue-600 h-10 px-6 font-bold shadow-lg">GIAO DỊCH KHO</Button>
-        </Space>
+        <div className="flex items-center gap-3">
+          <Button icon={<FileExcelOutlined />} onClick={exportMaterialsToExcel} className="h-12 px-6 rounded-2xl font-bold border-slate-200">XUẤT EXCEL</Button>
+          <Button 
+            type="primary" 
+            icon={<PlusOutlined />} 
+            onClick={() => setTransactionModalVisible(true)}
+            className="h-12 px-8 rounded-2xl font-bold shadow-indigo-200 shadow-lg"
+          >
+            GIAO DỊCH KHO
+          </Button>
+        </div>
       </div>
 
       {lowStockMaterials.length > 0 && (
@@ -230,13 +250,27 @@ export default function WarehousePage() {
         />
       )}
 
-      <Row gutter={24}>
-        <Col span={8}><Card className="shadow-sm rounded-2xl text-center items-center flex flex-col pointer-events-none border-blue-100 bg-blue-50/50"><Statistic title="Tổng vật tư" value={materials.length} prefix={<DatabaseOutlined />} /></Card></Col>
-        <Col span={8}><Card className="shadow-sm rounded-2xl text-center items-center flex flex-col pointer-events-none border-red-100 bg-red-50/50"><Statistic title="Sắp hết hàng" value={lowStockMaterials.length} prefix={<WarningOutlined />} valueStyle={{ color: '#ef4444' }} /></Card></Col>
-        <Col span={8}><Card className="shadow-sm rounded-2xl text-center items-center flex flex-col pointer-events-none border-green-100 bg-green-50/50"><Statistic title="Hoàn thành cấp phát (24h)" value={logs.filter(l => l.type === 'export').length} prefix={<ArrowDownOutlined />} /></Card></Col>
+      <Row gutter={[24, 24]}>
+        {[
+          { title: "TỔNG VẬT TƯ", value: materials.length, icon: <DatabaseOutlined />, color: "indigo" },
+          { title: "SẮP HẾT HÀNG", value: lowStockMaterials.length, icon: <WarningOutlined />, color: "rose", highlight: lowStockMaterials.length > 0 },
+          { title: "CẤP PHÁT (24H)", value: logs.filter(l => l.type === 'export').length, icon: <ArrowDownOutlined />, color: "emerald" }
+        ].map((stat, idx) => (
+          <Col span={8} key={idx}>
+            <div className={`ui-surface p-6 flex items-center justify-between border-none ${stat.highlight ? 'animate-pulse-subtle shadow-rose-100 shadow-lg' : ''}`}>
+              <div className="flex flex-col">
+                <Text className="text-[10px] font-black tracking-widest text-slate-400 uppercase mb-1">{stat.title}</Text>
+                <span className={`text-3xl font-black tracking-tight ${stat.highlight ? 'text-rose-600' : 'text-slate-900'}`}>{stat.value}</span>
+              </div>
+              <div className={`p-4 rounded-2xl bg-${stat.color}-50 text-${stat.color}-600 text-2xl shadow-sm border border-${stat.color}-100`}>
+                {stat.icon}
+              </div>
+            </div>
+          </Col>
+        ))}
       </Row>
 
-      <Tabs defaultActiveKey="1" items={tabItems} className="warehouse-tabs bg-white p-6 rounded-2xl shadow-sm border border-gray-100" />
+      <Tabs defaultActiveKey="1" items={tabItems} className="premium-tabs-layout" centered />
 
       <MaterialDetailModal
         visible={materialModalVisible}
@@ -247,61 +281,68 @@ export default function WarehousePage() {
 
       <Modal
         title={
-          <Space className="p-2">
-            <div className="bg-blue-100 p-2 rounded-lg"><PlusOutlined className="text-blue-600" /></div>
-            <Text strong className="text-lg">Tạo giao dịch kho</Text>
-          </Space>
+          <div className="flex flex-col gap-1 pr-12">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl text-lg">
+                <DatabaseOutlined />
+              </div>
+              <div className="flex flex-col">
+                <span className="text-xl font-black tracking-tight text-slate-900 leading-tight">GIAO DỊCH KHO</span>
+                <Text className="text-[10px] font-black uppercase tracking-widest text-indigo-500">Inventory Transaction</Text>
+              </div>
+            </div>
+          </div>
         }
         open={transactionModalVisible}
         onCancel={() => setTransactionModalVisible(false)}
         footer={null}
         width={500}
         centered
-        className="transaction-modal"
+        className="premium-modal no-padding-body"
       >
-        <Form form={form} layout="vertical" onFinish={handleTransaction} initialValues={{ type: 'import' }} onValuesChange={(v) => v.type && setExportType(v.type)}>
-          <Form.Item name="type" label="Loại giao dịch" rules={[{ required: true }]}>
-            <Segmented 
-              block 
-              options={[
-                { label: 'NHẬP KHO', value: 'import', icon: <ArrowUpOutlined /> },
-                { label: 'XUẤT KHO / CẤP PHÁT', value: 'export', icon: <ArrowDownOutlined /> }
-              ]} 
-              className="mb-4"
-            />
-          </Form.Item>
-          <Form.Item name="material_id" label="Vật tư" rules={[{ required: true }]}>
-            <Select placeholder="Chọn vật tư trong kho" size="large">
-              {materials.map(m => <Option key={m.id} value={m.id}>{m.name} (Tồn: {m.stock_quantity})</Option>)}
-            </Select>
-          </Form.Item>
-          {exportType === 'export' && (
-            <Form.Item name="order_id" label="Cấp phát cho Đơn hàng (LSX)" rules={[{ required: true, message: 'Vui lòng chọn LSX liên kết' }]}>
-              <Select placeholder="Tìm LSX đang hoạt động..." size="large" showSearch filterOption={(input, option) => (option?.children as any || '').toLowerCase().includes(input.toLowerCase())}>
-                {orders.map(o => <Option key={o.id} value={o.id}>{o.code} - {o.title}</Option>)}
+        <div className="p-8">
+          <Form form={form} layout="vertical" onFinish={handleTransaction} initialValues={{ type: 'import' }} onValuesChange={(v) => v.type && setExportType(v.type)}>
+            <Form.Item name="type" label={<Text className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Phân loại</Text>} rules={[{ required: true }]}>
+              <Segmented 
+                block 
+                options={[
+                  { label: 'NHẬP KHO', value: 'import', icon: <ArrowUpOutlined /> },
+                  { label: 'CẤP PHÁT', value: 'export', icon: <ArrowDownOutlined /> }
+                ]} 
+                className="premium-segmented"
+              />
+            </Form.Item>
+            <Form.Item name="material_id" label={<Text className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Chọn Vật tư</Text>} rules={[{ required: true }]}>
+              <Select placeholder="Tìm vật tư..." className="premium-select" size="large">
+                {materials.map(m => <Option key={m.id} value={m.id}>{m.name} (Tồn: {m.stock_quantity})</Option>)}
               </Select>
             </Form.Item>
-          )}
-          <Row gutter={16}>
-            <Col span={24}>
-              <Form.Item name="quantity" label="Số lượng" rules={[{ required: true }]}>
-                <InputNumber min={0.1} className="w-full" size="large" />
+            {exportType === 'export' && (
+              <Form.Item name="order_id" label={<Text className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sản xuất (LSX)</Text>} rules={[{ required: true, message: 'Vui lòng chọn LSX liên kết' }]}>
+                <Select placeholder="Tìm LSX..." className="premium-select" size="large" showSearch filterOption={(input, option) => (option?.children as any || '').toLowerCase().includes(input.toLowerCase())}>
+                  {orders.map(o => <Option key={o.id} value={o.id}>{o.code} - {o.title}</Option>)}
+                </Select>
               </Form.Item>
-            </Col>
-          </Row>
-          <Form.Item name="reason" label="Ghi chú thêm">
-            <Input.TextArea rows={2} placeholder="Nội dung diễn giải..." />
-          </Form.Item>
-          <div className="flex justify-end gap-3 pt-4">
-            <Button onClick={() => setTransactionModalVisible(false)} size="large">Hủy</Button>
-            <Button type="primary" htmlType="submit" size="large" className="bg-blue-600 px-8">Xác nhận</Button>
-          </div>
-        </Form>
+            )}
+            <Form.Item name="quantity" label={<Text className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Số lượng</Text>} rules={[{ required: true }]}>
+              <InputNumber min={0.1} className="w-full premium-select h-11" size="large" />
+            </Form.Item>
+            <Form.Item name="reason" label={<Text className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Diễn giải</Text>}>
+              <Input.TextArea rows={3} placeholder="..." className="rounded-xl border-slate-200" />
+            </Form.Item>
+            <div className="flex justify-end gap-3 pt-6">
+              <Button onClick={() => setTransactionModalVisible(false)} className="h-11 px-6 rounded-xl font-bold">HỦY</Button>
+              <Button type="primary" htmlType="submit" className="h-11 px-10 rounded-xl font-bold bg-indigo-600 shadow-indigo-100 shadow-lg border-none">XÁC NHẬN</Button>
+            </div>
+          </Form>
+        </div>
       </Modal>
 
       <style jsx global>{`
-        .warehouse-tabs .ant-tabs-nav::before { border-bottom: 2px solid #f1f5f9; }
-        .warehouse-tabs .ant-tabs-tab-active { font-weight: 900; }
+        .premium-tabs-layout .ant-tabs-nav { margin-bottom: 24px !important; }
+        .premium-tabs-layout .ant-tabs-tab { padding: 12px 0 !important; font-size: 11px !important; font-weight: 800 !important; text-transform: uppercase !important; color: #94a3b8 !important; letter-spacing: 1px !important; }
+        .premium-tabs-layout .ant-tabs-tab-active .ant-tabs-tab-btn { color: #6366f1 !important; }
+        .premium-tabs-layout .ant-tabs-ink-bar { background: #6366f1 !important; height: 3px !important; border-radius: 3px 3px 0 0 !important; }
       `}</style>
     </div>
   );

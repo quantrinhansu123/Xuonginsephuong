@@ -233,7 +233,6 @@ export default function FinancePage() {
 
       message.success('Đã tạo giao dịch thành công');
       setTransactionModalVisible(false);
-      form.resetFields();
       fetchData();
     } catch (err) {
       console.error(err);
@@ -794,7 +793,14 @@ export default function FinancePage() {
         <Space>
           <Button icon={<FileExcelOutlined />} onClick={exportToExcel}>Xuất Excel</Button>
           <Button icon={<SwapOutlined />} onClick={() => setTransferModalVisible(true)}>Chuyển khoản</Button>
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => { form.resetFields(); setTransactionModalVisible(true); }}>Tạo giao dịch</Button>
+          <Button 
+            type="primary" 
+            icon={<PlusOutlined />} 
+            onClick={() => setTransactionModalVisible(true)}
+            className="h-10 px-6 rounded-xl font-bold bg-green-600 shadow-green-100 shadow-lg border-none"
+          >
+            TẠO GIAO DỊCH
+          </Button>
           <Button icon={<ReloadOutlined />} onClick={fetchData} loading={loading}>Làm mới</Button>
         </Space>
       </div>
