@@ -226,9 +226,9 @@ export default function OrdersPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+      <div className="ui-surface flex justify-between items-center p-5">
         <div>
-          <Title level={3} className="m-0">Lệnh Sản Xuất</Title>
+          <Title level={3} className="m-0 ui-section-title">Lệnh Sản Xuất</Title>
           <Text type="secondary">Quản lý và theo dõi tiến độ các đơn hàng sản xuất</Text>
         </div>
         <Space size="middle">
@@ -240,7 +240,7 @@ export default function OrdersPage() {
         </Space>
       </div>
 
-      <Card className="shadow-sm border-none p-2">
+      <Card className="ui-surface border-none p-2" bodyStyle={{ padding: 18 }}>
         <Row gutter={16} align="middle" className="mb-4">
           <Col span={6}>
             <Input 
@@ -277,8 +277,9 @@ export default function OrdersPage() {
           </Col>
         </Row>
 
-        <div className="mb-4">
-          <Tag color="blue">Đang hiển thị: {filteredData.length} / {data.length} đơn hàng</Tag>
+        <div className="mb-4 flex items-center justify-between">
+          <Tag color="blue" className="px-3 py-1 font-medium">Đang hiển thị: {filteredData.length} / {data.length} đơn hàng</Tag>
+          <Text type="secondary">Dữ liệu cập nhật theo thời gian thực</Text>
         </div>
 
         <Table 
@@ -287,19 +288,14 @@ export default function OrdersPage() {
           rowKey="id" 
           loading={loading}
           pagination={{ pageSize: 12, showSizeChanger: true, showTotal: (total) => `Tổng ${total} đơn hàng` }}
-          className="custom-table"
+          className="designer-table"
+          scroll={{ x: 1200 }}
         />
       </Card>
 
       <CreateOrderModal visible={createModalVisible} onClose={() => { setCreateModalVisible(false); fetchOrders(); }} />
       <OrderDetailModal visible={detailModalVisible} order={selectedOrder} onClose={() => setDetailModalVisible(false)} />
 
-      <style jsx global>{`
-        .custom-table .ant-table-thead > tr > th {
-          background-color: #f8fafc;
-          font-weight: 600;
-        }
-      `}</style>
     </div>
   );
 }

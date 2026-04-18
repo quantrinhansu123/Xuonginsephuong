@@ -171,6 +171,7 @@ export default function CreateOrderModal({ visible, onClose }: CreateOrderModalP
       width={900}
       okText="Tạo Lệnh"
       cancelText="Hủy"
+      wrapClassName="designer-modal"
     >
       <Spin spinning={loading} tip="Đang tải dữ liệu...">
         <Form
@@ -179,7 +180,7 @@ export default function CreateOrderModal({ visible, onClose }: CreateOrderModalP
           onFinish={onFinish}
           initialValues={{ quantity: 1, unit_price: 0, vat: 8, unit: 'Bộ', workflow_steps: [] }}
         >
-          <Divider orientation={"left" as any} plain>Thông tin chung</Divider>
+          <Divider orientation={"left" as any} plain className="ui-section-title">Thông tin chung</Divider>
           <Row gutter={16}>
             <Col span={16}>
               <Form.Item name="customer_id" label="Khách hàng" rules={[{ required: true }]}>
@@ -246,7 +247,7 @@ export default function CreateOrderModal({ visible, onClose }: CreateOrderModalP
             </Col>
           </Row>
 
-          <Divider orientation={"left" as any} plain><NodeIndexOutlined /> Quy trình sản xuất (Workflow)</Divider>
+          <Divider orientation={"left" as any} plain className="ui-section-title"><NodeIndexOutlined /> Quy trình sản xuất (Workflow)</Divider>
           
           <Alert 
             message="Chọn quy trình sản xuất theo thứ tự" 
@@ -304,7 +305,7 @@ export default function CreateOrderModal({ visible, onClose }: CreateOrderModalP
             />
           )}
 
-          <Divider orientation={"left" as any} plain><DollarOutlined /> Tài chính</Divider>
+          <Divider orientation={"left" as any} plain className="ui-section-title"><DollarOutlined /> Tài chính</Divider>
           <Row gutter={16}>
             <Col span={8}>
               <Form.Item name="unit_price" label="Đơn giá (VNĐ)">
@@ -317,7 +318,7 @@ export default function CreateOrderModal({ visible, onClose }: CreateOrderModalP
               </Form.Item>
             </Col>
             <Col span={8}>
-              <div className="bg-blue-50 p-4 rounded-lg flex flex-col items-end">
+              <div className="ui-surface p-4 flex flex-col items-end">
                 <Text type="secondary">Tạm tính:</Text>
                 <Form.Item shouldUpdate noStyle>
                   {({ getFieldsValue }) => {

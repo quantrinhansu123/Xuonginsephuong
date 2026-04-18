@@ -206,7 +206,7 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
         <div className="p-4">
           <Row gutter={[32, 24]}>
             <Col span={12}>
-              <Card size="small" title="Thông số kỹ thuật" className="h-full border-blue-100 shadow-sm">
+              <Card size="small" title="Thông số kỹ thuật" className="h-full border-blue-100 shadow-sm ui-soft-surface">
                 <Space direction="vertical" className="w-full">
                   <div className="flex justify-between border-b pb-2">
                     <Text type="secondary">Nội dung:</Text>
@@ -228,7 +228,7 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
               </Card>
             </Col>
             <Col span={12}>
-              <Card size="small" title="Khách hàng & Hạn chót" className="h-full border-blue-100 shadow-sm">
+              <Card size="small" title="Khách hàng & Hạn chót" className="h-full border-blue-100 shadow-sm ui-soft-surface">
                 <Space direction="vertical" className="w-full">
                   <div className="flex justify-between border-b pb-2">
                     <Text type="secondary">Khách hàng:</Text>
@@ -306,7 +306,7 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
         <div className="p-4 space-y-6">
           <Row gutter={24}>
             <Col span={10}>
-              <Card title="Phải thu" headStyle={{ background: '#f8fafc' }} className="shadow-sm">
+              <Card title="Phải thu" headStyle={{ background: '#f8fafc' }} className="shadow-sm ui-soft-surface">
                 <Statistic title="Giá trị đơn" value={order?.financials?.total || 0} suffix="đ" />
                 <Divider plain>Chi tiết thuế</Divider>
                 <div className="flex justify-between mb-4">
@@ -329,7 +329,7 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
                     <Button size="small" type="primary" icon={<PlusOutlined />} onClick={() => setPaymentModalVisible(true)}>Thu tiền</Button>
                   )} 
                   headStyle={{ background: '#f8fafc' }}
-                  className="shadow-sm"
+                  className="shadow-sm ui-soft-surface"
                 >
                 <Table 
                   columns={[
@@ -342,6 +342,7 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
                   size="small"
                   rowKey="id"
                   loading={loadingPayments}
+                  className="designer-table"
                 />
                 <Divider dashed />
                 <div className="flex justify-between items-center px-4">
@@ -407,6 +408,7 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
         ]}
         width={1000}
         centered
+        wrapClassName="designer-modal"
       >
         <Tabs defaultActiveKey="1" items={tabItems} className="min-h-[500px]" destroyOnHidden />
       </Modal>
@@ -416,6 +418,8 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
         open={paymentModalVisible}
         onCancel={() => setPaymentModalVisible(false)}
         footer={null}
+        width={560}
+        wrapClassName="designer-modal"
       >
         <Form form={form} layout="vertical" onFinish={handleAddPayment} initialValues={{ type: 'payment', method: 'bank_transfer' }}>
           <Form.Item name="amount" label="Số tiền thanh toán" rules={[{ required: true }]}>
