@@ -60,7 +60,8 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
         .select(`
           *,
           departments (name, code),
-          users:assigned_to (full_name)
+          users:assigned_to (full_name),
+          estimated_duration_seconds
         `)
         .eq('order_id', order.id)
         .order('sequence_order', { ascending: true });
@@ -287,6 +288,11 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
                   <div className="flex items-center gap-3">
                     <span className="text-slate-400 font-mono text-sm">BƯỚC {idx + 1}</span>
                     <Text strong className="text-lg">{task.departments?.name}</Text>
+                    {task.estimated_duration_seconds > 0 && (
+                      <Tag className="m-0 border-none bg-slate-100 text-slate-500 text-[10px] font-bold">
+                        KPI: {Math.round(task.estimated_duration_seconds / 60)} PHÚT
+                      </Tag>
+                    )}
                   </div>
                 ),
                 subTitle: task.status === 'done' && durationStr ? <Tag className="m-0 rounded-md font-normal border-none bg-slate-100 text-slate-500">Thực hiện trong: {durationStr}</Tag> : null,
@@ -344,6 +350,21 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
                             <div className="flex justify-between text-[11px]">
                               <Text type="secondary">Hoàn tất:</Text>
                               <Text className="text-green-600">{dayjs(task.end_time).format('HH:mm - DD/MM')}</Text>
+                            </div>
+                          )}
+                          {task.status === 'in_progress' && task.start_time && task.estimated_duration_seconds && (
+                            <div className="flex justify-between items-center mt-2 pt-2 border-t border-dashed border-slate-100">
+                               <Text type="secondary" className="text-[10px] font-bold">HẠN KPI:</Text>
+                               <div className="flex flex-col items-end">
+                                  <Text className={`text-[11px] font-black ${
+                                    dayjs().isAfter(dayjs(task.start_time).add(task.estimated_duration_seconds, 'second')) ? 'text-red-500' : 'text-amber-500'
+                                  }`}>
+                                    {dayjs(task.start_time).add(task.estimated_duration_seconds, 'second').format('HH:mm DD/MM')}
+                                  </Text>
+                                  <Tag color={dayjs().isAfter(dayjs(task.start_time).add(task.estimated_duration_seconds, 'second')) ? 'red' : 'blue'} className="m-0 text-[8px] px-1 py-0 h-4 leading-3 border-none font-bold">
+                                     {dayjs().isAfter(dayjs(task.start_time).add(task.estimated_duration_seconds, 'second')) ? 'QUÁ HẠN' : 'TRONG HẠN'}
+                                  </Tag>
+                               </div>
                             </div>
                           )}
                         </div>

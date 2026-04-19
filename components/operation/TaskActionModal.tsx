@@ -336,6 +336,32 @@ export default function TaskActionModal({ visible, task, onClose, onRefresh }: T
                 )}
               </Card>
             </Col>
+            {task?.estimated_duration_seconds > 0 && task?.start_time && (
+              <Col span={24}>
+                <div className={`p-3 rounded-xl border ${
+                  dayjs().isAfter(dayjs(task.start_time).add(task.estimated_duration_seconds, 'second'))
+                  ? 'bg-red-50 border-red-100'
+                  : 'bg-indigo-50 border-indigo-100'
+                } flex justify-between items-center mt-4`}>
+                  <div className="flex items-center gap-3">
+                    <div className="bg-white p-2 rounded-lg shadow-sm"><ClockCircleOutlined className="text-indigo-600" /></div>
+                    <div>
+                      <div className="text-[10px] font-black uppercase text-indigo-400">HẠN KPI (Dự kiến xong)</div>
+                      <div className={`text-lg font-black ${
+                         dayjs().isAfter(dayjs(task.start_time).add(task.estimated_duration_seconds, 'second')) ? 'text-red-600' : 'text-slate-800'
+                      }`}>
+                        {dayjs(task.start_time).add(task.estimated_duration_seconds, 'second').format('HH:mm DD/MM/YYYY')}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <Tag color={dayjs().isAfter(dayjs(task.start_time).add(task.estimated_duration_seconds, 'second')) ? 'red' : 'blue'} className="m-0 border-none font-bold">
+                       {dayjs().isAfter(dayjs(task.start_time).add(task.estimated_duration_seconds, 'second')) ? 'QUÁ HẠN' : 'TRONG HẠN'}
+                    </Tag>
+                  </div>
+                </div>
+              </Col>
+            )}
           </Row>
           
           {/* Kho 2 Material Resolution */}

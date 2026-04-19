@@ -18,6 +18,7 @@ import {
   PlusCircleOutlined,
   DoubleRightOutlined,
   InfoCircleOutlined,
+  ClockCircleOutlined,
   DollarOutlined,
   NodeIndexOutlined,
   LeftOutlined,
@@ -50,7 +51,7 @@ export default function CreateOrderModal({ visible, onClose, customerId }: Creat
   const [workflowTemplates, setWorkflowTemplates] = useState<WorkflowTemplate[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [selectedSteps, setSelectedSteps] = useState<number[]>([]);
+  const [selectedSteps, setSelectedSteps] = useState<any[]>([]);
   const [workflowError, setWorkflowError] = useState<string>('');
   const [activeTab, setActiveTab] = useState('1');
 
@@ -94,13 +95,17 @@ export default function CreateOrderModal({ visible, onClose, customerId }: Creat
   };
 
   const handleWorkflowSelect = (workflowSteps: number[]) => {
-    setSelectedSteps([...workflowSteps]);
-    form.setFieldsValue({ workflow_steps: workflowSteps });
+    const stepsWithDuration = workflowSteps.map(id => ({
+      deptId: id,
+      duration: 60 // Default 60 minutes
+    }));
+    setSelectedSteps(stepsWithDuration);
+    form.setFieldsValue({ workflow_steps: stepsWithDuration });
     setWorkflowError('');
   };
 
   const handleAddStep = (deptId: number) => {
-    const newSteps = [...selectedSteps, deptId];
+    const newSteps = [...selectedSteps, { deptId, duration: 60 }];
     setSelectedSteps(newSteps);
     form.setFieldsValue({ workflow_steps: newSteps });
     setWorkflowError('');
@@ -123,7 +128,14 @@ export default function CreateOrderModal({ visible, onClose, customerId }: Creat
 
   const handleReplaceStep = (index: number, newDeptId: number) => {
     const newSteps = [...selectedSteps];
-    newSteps[index] = newDeptId;
+    newSteps[index] = { ...newSteps[index], deptId: newDeptId };
+    setSelectedSteps(newSteps);
+    form.setFieldsValue({ workflow_steps: newSteps });
+  };
+
+  const handleUpdateDuration = (index: number, duration: number | null) => {
+    const newSteps = [...selectedSteps];
+    newSteps[index] = { ...newSteps[index], duration: duration || 0 };
     setSelectedSteps(newSteps);
     form.setFieldsValue({ workflow_steps: newSteps });
   };
@@ -153,7 +165,8 @@ export default function CreateOrderModal({ visible, onClose, customerId }: Creat
 
   const onFinish = async (values: any) => {
     // Validate workflow
-    const validation = validateWorkflow(values.workflow_steps);
+    const deptIds = values.workflow_steps.map((s: any) => s.deptId);
+    const validation = validateWorkflow(deptIds);
     if (!validation.valid) {
       setWorkflowError(validation.error || 'Quy trình không hợp lệ');
       return;
@@ -182,7 +195,7 @@ export default function CreateOrderModal({ visible, onClose, customerId }: Creat
           received: 0,
         },
         status: 'in_progress',
-        workflow_steps: values.workflow_steps,
+        workflow_steps: values.workflow_steps.map((s: any) => s.deptId),
       };
 
       const { data: order, error: orderError } = await supabase
@@ -194,12 +207,13 @@ export default function CreateOrderModal({ visible, onClose, customerId }: Creat
       if (orderError) throw orderError;
 
       // Create tasks for each department in sequence
-      const tasksToCreate = values.workflow_steps.map((deptId: number, index: number) => ({
+      const tasksToCreate = values.workflow_steps.map((step: any, index: number) => ({
         order_id: (order as any).id,
-        department_id: deptId,
+        department_id: step.deptId,
         sequence_order: index + 1,
         status: index === 0 ? 'ready' : 'pending',
         ready_at: index === 0 ? new Date().toISOString() : null,
+        estimated_duration_seconds: (step.duration || 60) * 60,
       }));
 
       const { error: tasksError } = await supabase.from('tasks').insert(tasksToCreate);
@@ -397,23 +411,37 @@ export default function CreateOrderModal({ visible, onClose, customerId }: Creat
                               handleReorder(dragIndex, index);
                             }}
                           >
-                            <Dropdown menu={{ items: deptItems }} trigger={['click']}>
-                              <Tag 
-                                closable 
-                                onClose={(e: React.MouseEvent) => { e.preventDefault(); handleRemoveStep(index); }}
-                                className="px-3 py-2 rounded-xl border-blue-100 bg-white shadow-sm flex items-center gap-2 m-0 cursor-move hover:border-blue-300 transition-all"
-                                color="blue"
-                              >
-                                <HolderOutlined className="text-slate-300 mr-1" />
-                                <span className="bg-blue-600 text-white w-5 h-5 flex items-center justify-center rounded-full text-[10px] font-bold">
-                                  {index + 1}
-                                </span>
-                                <span className="font-bold text-slate-700">{getDeptName(deptId)}</span>
-                                <SwapOutlined className="text-slate-300 ml-1 text-[10px]" />
-                              </Tag>
-                            </Dropdown>
+                            <div className="flex flex-col gap-1 items-center">
+                              <Dropdown menu={{ items: deptItems }} trigger={['click']}>
+                                <Tag 
+                                  closable 
+                                  onClose={(e: React.MouseEvent) => { e.preventDefault(); handleRemoveStep(index); }}
+                                  className="px-3 py-2 rounded-xl border-blue-100 bg-white shadow-sm flex items-center gap-2 m-0 cursor-move hover:border-blue-300 transition-all"
+                                  color="blue"
+                                >
+                                  <HolderOutlined className="text-slate-300 mr-1" />
+                                  <span className="bg-blue-600 text-white w-5 h-5 flex items-center justify-center rounded-full text-[10px] font-bold">
+                                    {index + 1}
+                                  </span>
+                                  <span className="font-bold text-slate-700">{getDeptName(selectedSteps[index].deptId)}</span>
+                                  <SwapOutlined className="text-slate-300 ml-1 text-[10px]" />
+                                </Tag>
+                              </Dropdown>
+                              <div className="px-2 py-0.5 bg-slate-100 rounded-lg flex items-center gap-1">
+                                <ClockCircleOutlined className="text-[10px] text-slate-400" />
+                                <InputNumber 
+                                  size="small" 
+                                  min={1} 
+                                  value={selectedSteps[index].duration} 
+                                  onChange={(v) => handleUpdateDuration(index, v)}
+                                  className="w-16 border-none bg-transparent font-bold text-[10px]"
+                                  suffix={<span className="text-[9px] text-slate-400">P</span>}
+                                  controls={false}
+                                />
+                              </div>
+                            </div>
                             {index < selectedSteps.length - 1 && (
-                              <DoubleRightOutlined className="mx-2 text-slate-300 text-[10px]" />
+                              <DoubleRightOutlined className="mx-2 text-slate-300 text-[10px] mb-6" />
                             )}
                           </div>
                         );

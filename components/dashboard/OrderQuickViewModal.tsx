@@ -56,7 +56,8 @@ export default function OrderQuickViewModal({
         .from('tasks')
         .select(`
           *,
-          departments (name, code)
+          departments (name, code),
+          estimated_duration_seconds
         `)
         .eq('order_id', order.id)
         .order('sequence_order', { ascending: true });
@@ -202,7 +203,14 @@ export default function OrderQuickViewModal({
             items={tasks.map((task, idx) => ({
               title: (
                 <div className="flex items-center justify-between w-full pr-4">
-                  <Text className="font-black text-slate-800 tracking-tight">{task.departments?.name}</Text>
+                  <div className="flex items-center gap-2">
+                    <Text className="font-black text-slate-800 tracking-tight">{task.departments?.name}</Text>
+                    {task.estimated_duration_seconds > 0 && (
+                      <Tag className="m-0 border-none bg-slate-100 text-slate-500 text-[9px] font-bold">
+                        KPI: {Math.round(task.estimated_duration_seconds / 60)}P
+                      </Tag>
+                    )}
+                  </div>
                   <Tag 
                     className={`m-0 border-none font-black text-[10px] rounded-full px-3 py-0.5 bg-${getStatusColor(task.status)}-100 text-${getStatusColor(task.status)}-700`}
                   >
@@ -219,10 +227,16 @@ export default function OrderQuickViewModal({
                         <Text className="text-xs font-bold text-slate-600">{dayjs(task.start_time).format('DD/MM HH:mm')}</Text>
                       </div>
                     )}
-                    {task.end_time && (
+                    {task.status === 'in_progress' && task.start_time && task.estimated_duration_seconds && (
                       <div className="flex flex-col">
-                        <Text type="secondary" className="text-[9px] font-black uppercase tracking-wider">KẾT THÚC</Text>
-                        <Text className="text-xs font-bold text-emerald-600">{dayjs(task.end_time).format('DD/MM HH:mm')}</Text>
+                        <Text type="secondary" className="text-[9px] font-black uppercase tracking-wider">HẠN KPI</Text>
+                        <Text className={`text-xs font-bold ${
+                          dayjs().isAfter(dayjs(task.start_time).add(task.estimated_duration_seconds, 'second')) 
+                          ? 'text-rose-600 animate-pulse' 
+                          : 'text-amber-500'
+                        }`}>
+                          {dayjs(task.start_time).add(task.estimated_duration_seconds, 'second').format('HH:mm DD/MM')}
+                        </Text>
                       </div>
                     )}
                   </div>
