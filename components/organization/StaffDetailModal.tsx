@@ -84,7 +84,7 @@ export default function StaffDetailModal({ visible, staff, departments, roles, o
         .select(`
           *,
           production_orders (code, title),
-          departments (name, code)
+          departments:department_id (name, code)
         `)
         .eq('assigned_to', staff.id)
         .order('created_at', { ascending: false })
@@ -92,8 +92,8 @@ export default function StaffDetailModal({ visible, staff, departments, roles, o
       
       if (error) throw error;
       setTasks(data || []);
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error('Error fetching staff tasks:', err?.message || err);
     } finally {
       setLoadingTasks(false);
     }

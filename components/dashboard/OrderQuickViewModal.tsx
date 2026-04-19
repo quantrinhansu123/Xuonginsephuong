@@ -42,6 +42,7 @@ export default function OrderQuickViewModal({
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('1');
+  const [, forceUpdate] = useState({});
 
   useEffect(() => {
     if (visible && order) {
@@ -49,15 +50,40 @@ export default function OrderQuickViewModal({
     }
   }, [visible, order]);
 
+  // Auto-refresh thời gian phản hồi real-time mỗi 30 giây
+  useEffect(() => {
+    if (!visible) return;
+    
+    const interval = setInterval(() => {
+      // Force re-render để cập nhật thời gian phản hồi real-time
+      forceUpdate({});
+    }, 30000); // 30 giây
+
+    return () => clearInterval(interval);
+  }, [visible]);
+
   const fetchTaskDetails = async () => {
+    if (!order?.id) return;
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from('tasks')
         .select(`
-          *,
-          departments (name, code),
-          estimated_duration_seconds
+          id, 
+          status, 
+          department_id,
+          sequence_order,
+          assigned_to,
+          start_time, 
+          end_time, 
+          ready_at, 
+          updated_at,
+          created_at,
+          issue_log, 
+          material_shortage,
+          estimated_duration_seconds,
+          departments:department_id (name, code),
+          users:assigned_to (full_name)
         `)
         .eq('order_id', order.id)
         .order('sequence_order', { ascending: true });
@@ -65,7 +91,10 @@ export default function OrderQuickViewModal({
       if (error) throw error;
       setTasks(data || []);
     } catch (err) {
-      console.error(err);
+      console.error('Error fetching task details:', err);
+      if (order.tasks) {
+        setTasks(order.tasks);
+      }
     } finally {
       setLoading(false);
     }
@@ -105,6 +134,9 @@ export default function OrderQuickViewModal({
     return labels[status] || status.toUpperCase();
   };
 
+  const handleNext = () => onNavigate?.('next');
+  const handlePrev = () => onNavigate?.('prev');
+
   const tabItems = [
     {
       key: '1',
@@ -140,7 +172,8 @@ export default function OrderQuickViewModal({
               </div>
             </Col>
             <Col span={10}>
-              <div className="ui-surface p-6 h-full bg-slate-900 text-white border-none flex flex-col items-center justify-center">
+              <div className="ui-surface p-6 h-full bg-slate-900 text-white border-none flex flex-col items-center justify-center relative overflow-hidden">
+                 <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 blur-3xl rounded-full -mr-16 -mt-16"></div>
                  <Text className="premium-label text-slate-400 mb-6">TIẾN ĐỘ TỔNG THỂ</Text>
                  <Progress 
                     type="circle" 
@@ -160,32 +193,32 @@ export default function OrderQuickViewModal({
                   />
                   <div className="mt-6 flex gap-2">
                      <span className="text-xs font-bold px-3 py-1 bg-white/10 rounded-full border border-white/10">
-                        {tasks.filter(t => t.status === 'done').length}/{tasks.length} BƯỚC
+                        {tasks.filter(t => t.status === 'done').length}/{tasks.length} BƯỚC HOÀN TẤT
                      </span>
                   </div>
               </div>
             </Col>
             <Col span={24}>
-              <div className="glass-card p-6 rounded-[24px]">
-                <Text className="premium-label text-slate-400 block mb-4">LỘ TRÌNH BỘ PHẬN</Text>
-                <div className="flex flex-wrap gap-3">
-                  {tasks.map((task) => {
-                    const color = getStatusColor(task.status);
-                    return (
-                      <div 
-                        key={task.id}
-                        className={`
-                          flex items-center gap-2 px-4 py-2 rounded-2xl border-2 transition-all
-                          bg-${color}-50 border-${color}-100 text-${color}-700 font-bold text-xs
-                        `}
-                      >
-                        {task.status === 'done' ? <CheckCircleOutlined /> : <ClockCircleOutlined />}
-                        {task.departments?.name}: {getStatusLabel(task.status)}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+               <div className="ui-surface p-6 bg-slate-50">
+                  <Text className="premium-label text-slate-400 block mb-4 uppercase">Các khâu đã qua</Text>
+                  <div className="flex flex-wrap gap-2">
+                    {tasks.map((task: any) => {
+                      const color = getStatusColor(task.status);
+                      return (
+                        <div 
+                          key={task.id}
+                          className={`
+                            flex items-center gap-2 px-4 py-2 rounded-2xl border-2 transition-all
+                            bg-${color}-50 border-${color}-100 text-${color}-700 font-bold text-xs
+                          `}
+                        >
+                          {task.status === 'done' ? <CheckCircleOutlined /> : <ClockCircleOutlined />}
+                          {task.departments?.name}: {getStatusLabel(task.status)}
+                        </div>
+                      );
+                    })}
+                  </div>
+               </div>
             </Col>
           </Row>
         </div>
@@ -195,67 +228,176 @@ export default function OrderQuickViewModal({
       key: '2',
       label: <span className="flex items-center gap-2"><NodeIndexOutlined /> QUY TRÌNH KỸ THUẬT</span>,
       children: (
-        <div className="p-8 animate-in">
+        <div className="p-8 animate-in overflow-y-auto max-h-[60vh] custom-scrollbar">
           <Steps
             orientation="vertical"
             current={getCurrentStep()}
             className="premium-steps"
-            items={tasks.map((task, idx) => ({
-              title: (
-                <div className="flex items-center justify-between w-full pr-4">
-                  <div className="flex items-center gap-2">
-                    <Text className="font-black text-slate-800 tracking-tight">{task.departments?.name}</Text>
-                    {task.estimated_duration_seconds > 0 && (
-                      <Tag className="m-0 border-none bg-slate-100 text-slate-500 text-[9px] font-bold">
-                        KPI: {Math.round(task.estimated_duration_seconds / 60)}P
-                      </Tag>
-                    )}
-                  </div>
-                  <Tag 
-                    className={`m-0 border-none font-black text-[10px] rounded-full px-3 py-0.5 bg-${getStatusColor(task.status)}-100 text-${getStatusColor(task.status)}-700`}
-                  >
-                    {getStatusLabel(task.status)}
-                  </Tag>
-                </div>
-              ),
-              description: (
-                <div className="mt-3 bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col gap-2">
-                  <div className="flex items-center gap-6">
-                    {task.start_time && (
-                      <div className="flex flex-col">
-                        <Text type="secondary" className="text-[9px] font-black uppercase tracking-wider">BẮT ĐẦU</Text>
-                        <Text className="text-xs font-bold text-slate-600">{dayjs(task.start_time).format('DD/MM HH:mm')}</Text>
+            items={tasks.map((task: any, idx: number) => {
+              const responderName = task.users?.full_name || 'Hệ thống';
+              const readyTime = task.ready_at;
+              // Thời gian phản hồi: 
+              // - Nếu đã nhận việc (có start_time): lấy khoảng thời gian đã lưu (KHÔNG đếm nữa)
+              // - Nếu chưa nhận việc (chưa có start_time) NHƯNG đã được giao (có ready_at) VÀ đang chờ (status = ready/pending): đếm real-time
+              // - Nếu đang làm (in_progress) hoặc đã xong (done): KHÔNG đếm, chỉ hiển thị giá trị đã lưu
+              // - Nếu chưa được giao (chưa có ready_at): không tính (bước trước chưa xong)
+              const responseTime = task.start_time && readyTime 
+                ? dayjs(task.start_time).diff(dayjs(readyTime), 'minute')
+                : (readyTime && !task.start_time && (task.status === 'ready' || task.status === 'pending'))
+                  ? dayjs().diff(dayjs(readyTime), 'minute')
+                  : null;
+              
+              const isOverdue = task.status === 'in_progress' && task.start_time && task.estimated_duration_seconds && 
+                                dayjs().isAfter(dayjs(task.start_time).add(task.estimated_duration_seconds, 'second'));
+
+              return {
+                title: (
+                  <div className="flex flex-col w-full">
+                    <div className="flex items-center justify-between pr-4">
+                      <div className="flex items-center gap-3">
+                        <span className="text-slate-400 font-mono text-[10px] font-bold">BƯỚC {idx + 1}</span>
+                        <Text className="font-black text-slate-800 text-base tracking-tight">{task.departments?.name}</Text>
+                        {task.estimated_duration_seconds > 0 && (
+                          <Tag className="m-0 border-none bg-indigo-50 text-indigo-600 text-[9px] font-bold px-2 rounded-lg">
+                            KPI: {Math.round(task.estimated_duration_seconds / 60)}P
+                          </Tag>
+                        )}
                       </div>
-                    )}
-                    {task.status === 'in_progress' && task.start_time && task.estimated_duration_seconds && (
-                      <div className="flex flex-col">
-                        <Text type="secondary" className="text-[9px] font-black uppercase tracking-wider">HẠN KPI</Text>
-                        <Text className={`text-xs font-bold ${
-                          dayjs().isAfter(dayjs(task.start_time).add(task.estimated_duration_seconds, 'second')) 
-                          ? 'text-rose-600 animate-pulse' 
-                          : 'text-amber-500'
-                        }`}>
-                          {dayjs(task.start_time).add(task.estimated_duration_seconds, 'second').format('HH:mm DD/MM')}
-                        </Text>
+                      <div className="flex items-center gap-2">
+                        {task.status === 'done' && (
+                           <Tag className="m-0 border-none bg-emerald-50 text-emerald-600 font-black text-[9px] px-3 py-1 rounded-full">HOÀN TẤT</Tag>
+                        )}
+                        {task.status === 'in_progress' && (
+                           <div className="flex items-center gap-1.5 px-3 py-1 bg-indigo-600 text-white rounded-full text-[9px] font-black animate-shimmer">
+                              <SyncOutlined spin /> ĐANG LÀM
+                           </div>
+                        )}
+                        {(task.status === 'issue' || task.status === 'on_hold') && (
+                           <Tag className="m-0 border-none bg-rose-50 text-rose-600 font-black text-[9px] px-3 py-1 rounded-full uppercase tracking-tighter">SỰ CỐ / DỪNG</Tag>
+                        )}
+                        {task.status === 'ready' && (
+                           <Tag className="m-0 border-none bg-cyan-50 text-cyan-600 font-black text-[9px] px-3 py-1 rounded-full uppercase tracking-tighter">SẴN SÀNG</Tag>
+                        )}
                       </div>
-                    )}
+                    </div>
                   </div>
-                  {task.issue_log && (
-                    <div className="mt-2 p-2 bg-rose-100 text-rose-700 rounded-lg text-[11px] font-bold flex items-center gap-2">
-                       <WarningOutlined /> {task.issue_log}
+                ),
+                description: (
+                  <div className={`mt-4 mb-6 rounded-[28px] border transition-all duration-300 overflow-hidden ${
+                    task.status === 'in_progress' ? 'bg-white shadow-xl shadow-indigo-100 border-indigo-100 ring-2 ring-indigo-50' : 'bg-slate-50 border-slate-100 hover:border-slate-200'
+                  }`}>
+                    <div className="p-5">
+                      <Row gutter={[24, 16]}>
+                        <Col span={10}>
+                          <div className="space-y-4">
+                             <div>
+                                <Text className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-2">Người xác nhận</Text>
+                                <div className="flex items-center gap-2.5">
+                                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-black text-xs border-2 border-white shadow-sm font-mono overflow-hidden uppercase">
+                                      {responderName.charAt(0)}
+                                   </div>
+                                   <div>
+                                      <Text className="text-xs font-bold text-slate-700 block leading-tight">{responderName}</Text>
+                                      <Text className="text-[10px] text-slate-400 font-medium tracking-tight">BP. {task.departments?.code || 'XNK'}</Text>
+                                   </div>
+                                </div>
+                             </div>
+                             {task.machine_info?.machine_id && (
+                               <div>
+                                  <Text className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Thiết bị sử dụng</Text>
+                                  <Text className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg border border-indigo-100 inline-block font-mono">
+                                     {task.machine_info.machine_id}
+                                  </Text>
+                               </div>
+                             )}
+                          </div>
+                        </Col>
+                        
+                        <Col span={14} className="border-l border-slate-100 pl-6">
+                           <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-3">
+                                 <div>
+                                    <Text className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Thời gian phản hồi</Text>
+                                    <div className="flex items-center gap-2">
+                                       <ClockCircleOutlined className={`text-xs ${!task.start_time && responseTime !== null ? 'text-amber-400 animate-pulse' : 'text-slate-300'}`} />
+                                       <Text className={`text-xs font-black font-mono ${
+                                         task.start_time && responseTime !== null && responseTime > 30 ? 'text-rose-500' : 
+                                         !task.start_time && responseTime !== null ? 'text-amber-600' :
+                                         'text-slate-600'
+                                       }`}>
+                                          {responseTime !== null ? `${responseTime} phút` : (readyTime ? '---' : 'Chờ bước trước')}
+                                       </Text>
+                                       {!task.start_time && responseTime !== null && (
+                                         <Tag className="m-0 text-[8px] bg-amber-50 text-amber-600 border-none font-bold animate-pulse">ĐANG ĐẾM</Tag>
+                                       )}
+                                       {task.start_time && responseTime !== null && responseTime > 30 && (
+                                         <Tag className="m-0 text-[8px] bg-rose-50 text-rose-500 border-none font-bold">ĐÃ LƯU - CHẬM</Tag>
+                                       )}
+                                       {task.start_time && responseTime !== null && responseTime <= 30 && (
+                                         <Tag className="m-0 text-[8px] bg-emerald-50 text-emerald-600 border-none font-bold">ĐÃ LƯU</Tag>
+                                       )}
+                                    </div>
+                                 </div>
+                                 {readyTime && (
+                                   <div>
+                                      <Text className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Giao việc lúc</Text>
+                                      <Text className="text-[11px] font-bold text-slate-500 font-mono tracking-tighter">{dayjs(readyTime).format('HH:mm - DD/MM')}</Text>
+                                   </div>
+                                 )}
+                                 {!readyTime && (
+                                   <div>
+                                      <Text className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Trạng thái</Text>
+                                      <Tag className="m-0 text-[8px] bg-slate-100 text-slate-500 border-none font-bold">CHỜ BƯỚC TRƯỚC</Tag>
+                                   </div>
+                                 )}
+                              </div>
+                              <div className="space-y-3">
+                                 {task.start_time && (
+                                   <div>
+                                      <Text className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Xác nhận lúc</Text>
+                                      <Text className="text-[11px] font-black text-indigo-600 font-mono tracking-tighter">{dayjs(task.start_time).format('HH:mm - DD/MM')}</Text>
+                                   </div>
+                                 )}
+                                 {task.status === 'in_progress' && task.start_time && (
+                                   <div>
+                                      <Text className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Hạn hoàn thành</Text>
+                                      <div className="flex flex-col">
+                                         <Text className={`text-[11px] font-black font-mono tracking-tighter ${isOverdue ? 'text-rose-600 animate-pulse' : 'text-emerald-600'}`}>
+                                            {dayjs(task.start_time).add(task.estimated_duration_seconds, 'second').format('HH:mm - DD/MM')}
+                                         </Text>
+                                      </div>
+                                   </div>
+                                 )}
+                                 {task.status === 'done' && task.end_time && (
+                                   <div>
+                                      <Text className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Hoàn tất lúc</Text>
+                                      <Text className="text-[11px] font-black text-emerald-600 font-mono tracking-tighter">{dayjs(task.end_time).format('HH:mm - DD/MM')}</Text>
+                                   </div>
+                                 )}
+                              </div>
+                           </div>
+                        </Col>
+                      </Row>
+ 
+                      {task.issue_log && (
+                        <div className="mt-4 p-4 bg-rose-50 rounded-2xl border border-rose-100 flex items-start gap-3">
+                           <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-rose-500 shadow-sm border border-rose-100">
+                              <WarningOutlined />
+                           </div>
+                           <div>
+                              <Text className="text-[10px] font-black text-rose-400 uppercase tracking-widest block mb-1">Thông tin sự cố / Ghi chú</Text>
+                              <Text className="text-xs font-bold text-rose-700 leading-snug">{task.issue_log}</Text>
+                           </div>
+                        </div>
+                      )}
                     </div>
-                  )}
-                  {task.material_shortage && (
-                    <div className="mt-2 p-2 bg-amber-100 text-amber-700 rounded-lg text-[11px] font-bold flex items-center gap-2">
-                       <ClockCircleOutlined /> ĐANG THIẾU VẬT TƯ (CHỜ KHO)
-                    </div>
-                  )}
-                </div>
-              ),
-              status: task.status === 'done' ? 'finish' : 
-                      task.status === 'in_progress' ? 'process' :
-                      task.status === 'issue' || task.status === 'on_hold' ? 'error' : 'wait',
-            }))}
+                  </div>
+                ),
+                status: task.status === 'done' ? 'finish' : 
+                        task.status === 'in_progress' ? 'process' :
+                        task.status === 'issue' || task.status === 'on_hold' ? 'error' : 'wait',
+              };
+            })}
           />
         </div>
       )
@@ -296,9 +438,6 @@ export default function OrderQuickViewModal({
       )
     }
   ];
-
-  const handleNext = () => onNavigate?.('next');
-  const handlePrev = () => onNavigate?.('prev');
 
   return (
     <Modal
@@ -388,7 +527,7 @@ export default function OrderQuickViewModal({
         .premium-steps .ant-steps-item-title { width: 100%; }
         .premium-steps .ant-steps-item-process .ant-steps-item-icon { background: #6366f1; border-color: #6366f1; }
         @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
-        .animate-slide { animation: slideIn 0.3s ease-out; }
+        .animate-in { animation: slideIn 0.3s ease-out; }
       `}</style>
     </Modal>
   );

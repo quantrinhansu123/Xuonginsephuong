@@ -130,6 +130,7 @@ export default function TaskActionModal({ visible, task, onClose, onRefresh }: T
   const handleStatusChange = async (newStatus: string, additionalData: any = {}) => {
     setSubmitting(true);
     try {
+      const user = await getUser();
       const now = new Date().toISOString();
       const updates: any = { 
         status: newStatus,
@@ -140,6 +141,9 @@ export default function TaskActionModal({ visible, task, onClose, onRefresh }: T
       if (newStatus === 'in_progress' && task.status === 'ready') {
         updates.start_time = now;
         updates.kpi_start_time = now;
+        if (user) {
+          updates.assigned_to = user.id;
+        }
       }
 
       // If leaving hold/issue status, accumulate duration and clear log

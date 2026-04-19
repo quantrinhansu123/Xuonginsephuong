@@ -57,7 +57,7 @@ export default function TasksPage() {
         .select(`
           *,
           production_orders (*),
-          departments (name, code)
+          departments:department_id (name, code)
         `)
         .order('updated_at', { ascending: false });
 
@@ -84,8 +84,8 @@ export default function TasksPage() {
       }
 
       setData(filtered);
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error('Error fetching tasks:', err?.message || err);
       message.error('Lỗi khi tải danh sách nhiệm vụ');
     } finally {
       setLoading(false);

@@ -21,6 +21,7 @@ import {
   EyeOutlined,
   ContainerOutlined,
   InfoCircleOutlined,
+  RightOutlined,
   AreaChartOutlined as LineChartOutlined
 } from '@ant-design/icons';
 import { 
@@ -40,7 +41,7 @@ export default function DashboardPage() {
   const [departments, setDepartments] = useState<any[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [viewMode, setViewMode] = useState<string | number>('Kanban');
+  const [viewMode, setViewMode] = useState<string | number>('Pipeline');
 
   // Filters
   const [customerFilter, setCustomerFilter] = useState<string | null>(null);
@@ -61,6 +62,44 @@ export default function DashboardPage() {
   const [quickViewModalVisible, setQuickViewModalVisible] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
 
+  const fetchTaskDetails = async (order: any, setTasks: (tasks: any[]) => void) => {
+    if (!order?.id) return;
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('tasks')
+        .select(`
+          id, 
+          status, 
+          department_id,
+          sequence_order,
+          start_time, 
+          end_time, 
+          ready_at, 
+          updated_at,
+          created_at,
+          issue_log, 
+          material_shortage,
+          estimated_duration_seconds,
+          departments:department_id (name, code),
+          users:assigned_to (full_name)
+        `)
+        .eq('order_id', order.id)
+        .order('sequence_order', { ascending: true });
+      
+      if (error) throw error;
+      setTasks(data || []);
+    } catch (err) {
+      console.error('Error fetching task details:', err);
+      // Fallback to order.tasks if available
+      if (order.tasks) {
+        setTasks(order.tasks);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const fetchData = async () => {
     setLoading(true);
     try {
@@ -77,7 +116,7 @@ export default function DashboardPage() {
         .select(`
           id, code, title, status, created_at, customer_id,
           customers (name),
-          tasks (id, status, department_id, start_time, end_time, ready_at, updated_at, issue_log, material_shortage, hold_start_time, total_hold_seconds)
+          tasks (id, status, department_id, start_time, end_time, ready_at, updated_at, created_at, issue_log, material_shortage, hold_start_time, total_hold_seconds)
         `)
         .order('created_at', { ascending: false });
 
@@ -95,7 +134,7 @@ export default function DashboardPage() {
 
       let filteredOrders = orders || [];
       if (deptFilter) {
-        filteredOrders = filteredOrders.filter(o => o.tasks.some((t: any) => t.department_id === deptFilter));
+        filteredOrders = filteredOrders.filter(o => o.tasks?.some((t: any) => t.department_id === deptFilter));
       }
 
       setData(filteredOrders);
@@ -110,8 +149,9 @@ export default function DashboardPage() {
       let delayedTaskCount = 0;
       filteredOrders.forEach(o => {
         o.tasks?.forEach((t: any) => {
-          if (t.status === 'ready' && t.ready_at) {
-            const delay = dayjs().diff(dayjs(t.ready_at), 'hour');
+          const readyTime = t.ready_at || t.created_at;
+          if (t.status === 'ready' && readyTime) {
+            const delay = dayjs().diff(dayjs(readyTime), 'hour');
             if (delay >= 1) {
               totalDelayHours += delay;
               delayedTaskCount++;
@@ -173,9 +213,10 @@ export default function DashboardPage() {
     let icon = <ClockCircleOutlined />;
     let isDelayed = false;
     let delayHours = 0;
+    const readyTime = task.ready_at || task.created_at;
 
-    if (task.status === 'ready' && task.ready_at) {
-      delayHours = dayjs().diff(dayjs(task.ready_at), 'hour');
+    if (task.status === 'ready' && readyTime) {
+      delayHours = dayjs().diff(dayjs(readyTime), 'hour');
       if (delayHours >= 1) isDelayed = true;
     }
 
@@ -225,7 +266,7 @@ export default function DashboardPage() {
              {isHold && <span className="bg-rose-500 h-1.5 w-1.5 rounded-full animate-ping"></span>}
           </div>
           <div className="h-px bg-white/20 my-2"></div>
-          {task.ready_at && <div className="text-xs mb-1">Sẵn sàng: <span className="font-black">{dayjs(task.ready_at).format('HH:mm DD/MM')}</span></div>}
+          {readyTime && <div className="text-xs mb-1">Sẵn sàng: <span className="font-black">{dayjs(readyTime).format('HH:mm DD/MM')}</span></div>}
           {isDelayed && <div className="text-rose-400 font-bold text-xs mt-1">TRỄ NHẬN: {delayHours}H</div>}
           {totalHold > 0 && (
             <div className="text-amber-300 font-bold text-xs mt-1 bg-amber-950/40 p-1.5 rounded-lg border border-amber-500/20">
@@ -425,14 +466,14 @@ export default function DashboardPage() {
 
           <div className="flex flex-wrap items-center gap-3 bg-white p-2 rounded-[24px] shadow-sm border border-slate-100">
              <Segmented
-               value={viewMode}
-               onChange={setViewMode}
-               options={[
-                 { label: 'BẢNG TỔNG', value: 'Kanban', icon: <TableOutlined /> },
-                 { label: 'QUY TRÌNH', value: 'Gantt', icon: <GanttOutlined /> },
-               ]}
-               className="premium-segmented"
-             />
+            value={viewMode}
+            onChange={setViewMode}
+            options={[
+              { label: 'DÒNG DỮ LIỆU', value: 'Pipeline', icon: <ThunderboltOutlined /> },
+              { label: 'TIẾN ĐỘ', value: 'Gantt', icon: <GanttOutlined /> },
+            ]}
+            className="premium-segmented"
+          />
              <div className="h-8 w-px bg-slate-100 mx-2"></div>
              <div className="px-4 border-r border-slate-100">
                 <div className="text-[9px] font-black uppercase text-slate-400 tracking-widest mb-0.5">CẬP NHẬT</div>
@@ -566,33 +607,141 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Master Table Container */}
-        <div className="premium-shadow rounded-[36px] overflow-hidden bg-white border border-slate-100 ring-1 ring-slate-200/50">
-          <Table
-            columns={viewMode === 'Kanban' ? columns.map(col => ({
-              ...col,
-              render: (...args: any[]) => (
-                <div className="animate-slide">
-                  {col.render ? (col.render as any)(...args) : args[0]}
+        {/* Master Data View */}
+        <div className="space-y-4">
+          {viewMode === 'Pipeline' ? (
+            <div className="grid gap-4">
+              {data.map((order, idx) => (
+                <div 
+                  key={order.id} 
+                  className="glass-card p-0 rounded-[28px] overflow-hidden hover:translate-x-1 transition-all duration-300 group cursor-pointer border-none shadow-sm hover:shadow-indigo-100/50 ring-1 ring-slate-100"
+                  onClick={() => { setSelectedOrder(order); setQuickViewModalVisible(true); }}
+                >
+                  <div className="flex flex-col md:flex-row items-stretch min-h-[100px]">
+                    {/* Order Side Info */}
+                    <div className="w-full md:w-[350px] p-6 bg-slate-50/50 border-r border-slate-100 relative">
+                       <div className="flex items-center gap-3 mb-2">
+                          <div className="w-3 h-3 rounded-full bg-indigo-600 shadow-[0_0_12px_rgba(99,102,241,0.8)] animate-pulse" />
+                          <Text className="text-lg font-black text-slate-900 font-mono tracking-tighter group-hover:text-indigo-600 transition-colors">
+                            {order.code}
+                          </Text>
+                          <Tag className="m-0 border-none bg-indigo-100 text-indigo-700 font-black text-[9px] rounded-lg">
+                            {order.status?.toUpperCase()}
+                          </Tag>
+                       </div>
+                       <Text className="text-[12px] font-bold text-slate-500 uppercase block truncate mb-1 pr-4">{order.title}</Text>
+                       <div className="flex items-center gap-2">
+                          <div className="w-5 h-5 rounded-lg bg-indigo-600 flex items-center justify-center text-[8px] text-white font-black">
+                             {order.customers?.name?.charAt(0).toUpperCase()}
+                          </div>
+                          <Text className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                             {order.customers?.name || 'KHÁCH VÃNG LAI'}
+                          </Text>
+                       </div>
+                    </div>
+
+                    {/* Pipeline Visualization */}
+                    <div className="flex-1 p-6 flex flex-wrap items-center gap-x-0 gap-y-4">
+                       {departments.map((dept, dIdx) => {
+                          const task = order.tasks?.find((t: any) => t.department_id === dept.id);
+                          if (!task) return null;
+
+                          const isDone = task.status === 'done';
+                          const isActive = task.status === 'in_progress';
+                          const isIssue = task.status === 'issue' || task.status === 'on_hold';
+                          const isReady = task.status === 'ready';
+
+                          let color = 'bg-slate-200 text-slate-400';
+                          let icon = <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />;
+                          let shadow = 'none';
+
+                          if (isDone) {
+                            color = 'bg-emerald-500 text-white';
+                            icon = <CheckCircleOutlined className="text-[10px]" />;
+                          } else if (isActive) {
+                            color = 'bg-indigo-600 text-white';
+                            icon = <SyncOutlined spin className="text-[10px]" />;
+                            shadow = '0 0 20px rgba(99,102,241,0.6)';
+                          } else if (isIssue) {
+                            color = 'bg-rose-500 text-white';
+                            icon = <WarningOutlined className="text-[10px] animate-pulse" />;
+                          } else if (isReady) {
+                            color = 'bg-cyan-500 text-white';
+                            icon = <PlayCircleOutlined className="text-[10px]" />;
+                          }
+
+                          return (
+                            <React.Fragment key={dept.id}>
+                              <Tooltip title={
+                                <div className="p-2">
+                                  <div className="font-black text-[10px] mb-1">{dept.name}</div>
+                                  <div className="text-[9px] opacity-70">{getStatusLabel(task.status)}</div>
+                                </div>
+                              }>
+                                <div className="flex flex-col items-center group/node relative">
+                                   <div 
+                                      className={`
+                                        h-14 w-32 rounded-2xl flex flex-col items-center justify-center transition-all duration-300 border-2
+                                        ${color} ${isActive ? 'scale-110 z-10' : 'hover:scale-105'}
+                                        ${isActive ? 'border-white' : 'border-transparent'}
+                                      `}
+                                      style={{ boxShadow: shadow }}
+                                   >
+                                      <span className="text-[9px] font-black tracking-widest opacity-70 uppercase leading-none mb-1">{dept.code}</span>
+                                      <span className="drop-shadow-sm">{icon}</span>
+                                      {isActive && (
+                                        <div className="absolute inset-0 bg-white/10 animate-pulse rounded-2xl"></div>
+                                      )}
+                                   </div>
+                                </div>
+                              </Tooltip>
+                              
+                              {/* Connector */}
+                              {dIdx < departments.length - 1 && order.tasks?.some((t: any) => departments.slice(dIdx + 1).some(d => d.id === t.department_id)) && (
+                                <div className="w-8 h-px bg-slate-200 relative mx-[-4px]">
+                                   <div className={`absolute top-1/2 left-0 h-0.5 w-full -translate-y-1/2 ${isDone ? 'bg-emerald-400' : 'bg-transparent'}`}></div>
+                                </div>
+                              )}
+                            </React.Fragment>
+                          );
+                       })}
+                    </div>
+
+                    {/* Quick Stats */}
+                    <div className="w-[120px] p-6 flex flex-col items-center justify-center border-l border-slate-100 bg-slate-50/20">
+                       <Button 
+                         type="text" 
+                         icon={<RightOutlined className="text-slate-300 group-hover:text-indigo-600 transition-all group-hover:translate-x-1" />} 
+                         className="h-14 w-14 rounded-2xl bg-white shadow-sm border border-slate-100"
+                       />
+                       <div className="mt-3 text-[9px] font-black text-slate-300 uppercase tracking-tighter">Xem chi tiết</div>
+                    </div>
+                  </div>
                 </div>
-              )
-            })) : ganttColumns}
-            dataSource={data}
-            rowKey="id"
-            pagination={{ 
-              pageSize: 10, 
-              placement: 'bottomCenter',
-              className: "premium-pagination p-6",
-              showTotal: (total: number) => <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Hệ thống đang điều hành {total} lệnh sản xuất</span>
-            } as any}
-            scroll={{ x: 'max-content', y: 700 }}
-            className="designer-table master-table"
-            loading={loading}
-            onRow={(record) => ({
-              onClick: () => { setSelectedOrder(record); setQuickViewModalVisible(true); },
-              className: 'group transition-all duration-300'
-            })}
-          />
+              ))}
+            </div>
+          ) : (
+            <div className="premium-shadow rounded-[36px] overflow-hidden bg-white border border-slate-100 ring-1 ring-slate-200/50">
+              <Table
+                columns={ganttColumns}
+                dataSource={data}
+                rowKey="id"
+                pagination={{ 
+                  pageSize: 10, 
+                  placement: 'bottomCenter',
+                  className: "premium-pagination p-6",
+                  showTotal: (total: number) => <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Hệ thống đang điều hành {total} lệnh sản xuất</span>
+                } as any}
+                scroll={{ x: 'max-content', y: 700 }}
+                className="designer-table master-table"
+                loading={loading}
+                onRow={(record) => ({
+                  onClick: () => { setSelectedOrder(record); setQuickViewModalVisible(true); },
+                  className: 'group transition-all duration-300'
+                })}
+              />
+            </div>
+          )}
         </div>
 
         {/* Analysis Section (KPI Visuals) */}
