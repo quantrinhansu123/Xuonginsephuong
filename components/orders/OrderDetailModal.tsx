@@ -24,7 +24,6 @@ import {
   CloseCircleOutlined,
   OrderedListOutlined,
   CloseOutlined,
-  DoubleRightOutlined,
   PlusCircleOutlined
 } from '@ant-design/icons';
 import { supabase } from '@/lib/supabase';
@@ -93,6 +92,7 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
       quantity: order?.specs?.quantity,
       unit_price: order?.financials?.unit_price,
       vat: order?.financials?.vat,
+      main_material_id: order?.specs?.main_material_id || null,
       paper_type: order?.specs?.paper_type,
       size: order?.specs?.size,
       sides: order?.specs?.sides,
@@ -131,11 +131,11 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
   useEffect(() => {
     if (editMode && order) {
       // Initialize workflow steps from existing tasks
-      const steps = tasks.map(t => ({
+      const steps: StepDraft[] = tasks.map((t): StepDraft => ({
         deptId: t.department_id,
         deadline: t.ready_at ? dayjs(t.ready_at).add(t.estimated_duration_seconds || 3600, 'second').format('YYYY-MM-DDTHH:mm') : null,
         note: t?.processing_info?.assignment_note || '',
-        materialStatus: t?.processing_info?.material_status === 'material_ready' ? 'material_ready' : 'waiting_material',
+        materialStatus: (t?.processing_info?.material_status === 'material_ready' ? 'material_ready' : 'waiting_material') as StepDraft['materialStatus'],
         materials: Array.isArray(t?.processing_info?.material_allocations) && t.processing_info.material_allocations.length > 0
           ? t.processing_info.material_allocations.map((item: any) => ({
               materialId: item?.material_id ?? null,
@@ -157,6 +157,7 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
         quantity: order.specs?.quantity,
         unit_price: order.financials?.unit_price,
         vat: order.financials?.vat,
+        main_material_id: order.specs?.main_material_id || null,
         paper_type: order.specs?.paper_type,
         size: order.specs?.size,
         sides: order.specs?.sides,
@@ -164,6 +165,23 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
       });
     }
   }, [editMode, order, tasks]);
+
+  useEffect(() => {
+    if (!visible || !order || materials.length === 0) return;
+    const currentMainMaterialId = editForm.getFieldValue('main_material_id');
+    if (currentMainMaterialId) return;
+
+    const legacyPaperType = order?.specs?.paper_type;
+    if (!legacyPaperType) return;
+
+    const matchedMaterial = materials.find(
+      (m: any) => (m?.name || '').trim().toLowerCase() === String(legacyPaperType).trim().toLowerCase()
+    );
+
+    if (matchedMaterial?.id) {
+      editForm.setFieldsValue({ main_material_id: matchedMaterial.id });
+    }
+  }, [visible, order, materials, editForm]);
 
   const fetchCustomers = async () => {
     try {
@@ -445,6 +463,14 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
     return Math.round((doneTasks / tasks.length) * 100);
   };
 
+  const formatDurationMinutes = (minutes: number | null) => {
+    if (minutes === null || Number.isNaN(minutes)) return '---';
+    if (minutes < 60) return `${minutes} phút`;
+    const hours = Math.floor(minutes / 60);
+    const remainMinutes = minutes % 60;
+    return remainMinutes > 0 ? `${hours} giờ ${remainMinutes} phút` : `${hours} giờ`;
+  };
+
   const getOrderStatusMeta = (status?: string) => {
     const map: Record<string, { label: string; className: string }> = {
       completed: { label: 'HOÀN TẤT', className: 'bg-emerald-100 text-emerald-700' },
@@ -462,6 +488,7 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
     try {
       const values = editForm.getFieldsValue();
       setSaving(true);
+      const selectedMainMaterial = materials.find((m: any) => m.id === values.main_material_id);
       
       // Calculate total with VAT
       const quantity = values.quantity || order?.specs?.quantity || 0;
@@ -478,7 +505,10 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
           unit: values.unit,
           size: values.size,
           sides: values.sides,
-          paper_type: values.paper_type,
+          main_material_id: values.main_material_id || null,
+          main_material_name: selectedMainMaterial?.name || null,
+          main_material_unit: selectedMainMaterial?.unit || null,
+          paper_type: selectedMainMaterial?.name || values.paper_type || null,
         },
         financials: {
           unit_price: values.unit_price,
@@ -517,7 +547,8 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
           // Calculate duration from deadline if provided
           if (step.deadline) {
             const deadlineDate = new Date(step.deadline);
-            const startDate = index === 0 ? new Date() : (selectedSteps[index - 1].deadline ? new Date(selectedSteps[index - 1].deadline) : new Date());
+            const prevDeadline = selectedSteps[index - 1]?.deadline;
+            const startDate = index === 0 ? new Date() : (prevDeadline ? new Date(prevDeadline) : new Date());
             estimatedDuration = Math.max(60, Math.floor((deadlineDate.getTime() - startDate.getTime()) / 1000));
           }
           
@@ -678,7 +709,8 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
             current={tasks.findIndex(t => t.status !== 'done')}
             className="order-detail-steps"
             items={tasks.map((task, idx) => {
-              const responderName = task.users?.full_name || 'Hệ thống';
+              const operatorName = task.users?.full_name || task.processing_info?.operator_name || 'Chưa có người nhận';
+              const previousTask = idx > 0 ? tasks[idx - 1] : null;
               // Thời gian phản hồi: 
               // - Nếu đã nhận việc (có start_time): lấy khoảng thời gian đã lưu (KHÔNG đếm nữa)
               // - Nếu chưa nhận việc (chưa có start_time) NHƯNG đã được giao (có ready_at) VÀ đang chờ (status = ready/pending): đếm real-time
@@ -689,6 +721,14 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
                 : (task.ready_at && !task.start_time && (task.status === 'ready' || task.status === 'pending'))
                   ? dayjs().diff(dayjs(task.ready_at), 'minute')
                   : null;
+
+              const timeBetweenSteps = previousTask
+                ? (task.start_time && previousTask.end_time
+                    ? dayjs(task.start_time).diff(dayjs(previousTask.end_time), 'minute')
+                    : (task.ready_at && previousTask.end_time
+                        ? dayjs(task.ready_at).diff(dayjs(previousTask.end_time), 'minute')
+                        : null))
+                : null;
               
               const isOverdue = task.status === 'in_progress' && task.start_time && task.estimated_duration_seconds && 
                                 dayjs().isAfter(dayjs(task.start_time).add(task.estimated_duration_seconds, 'second'));
@@ -699,7 +739,7 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
                     <div className="flex items-center justify-between pr-4">
                       <div className="flex items-center gap-3">
                         <span className="text-slate-400 font-mono text-[10px] font-bold">BƯỚC {idx + 1}</span>
-                        <Text strong className="text-lg text-slate-800 tracking-tight">{task.departments?.name}</Text>
+                        <Text strong className="text-base text-slate-800 tracking-tight">{task.departments?.name}</Text>
                         {task.estimated_duration_seconds > 0 && (
                           <Tag className="m-0 border-none bg-indigo-50 text-indigo-600 text-[9px] font-bold px-2 rounded-lg">
                             KPI: {Math.round(task.estimated_duration_seconds / 60)} PHÚT
@@ -724,29 +764,35 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
                   </div>
                 ),
                 content: (
-                  <div className={`mt-3 mb-4 rounded-2xl border transition-all duration-300 overflow-hidden ${
+                  <div className={`mt-2 mb-3 rounded-xl border transition-all duration-300 overflow-hidden ${
                     task.status === 'in_progress' ? 'bg-white shadow-xl shadow-indigo-100 border-indigo-100 ring-2 ring-indigo-50' : 'bg-slate-50 border-slate-100 hover:border-slate-200'
                   }`}>
-                    <div className="p-4">
-                      <Row gutter={[16, 12]}>
+                    <div className="p-3">
+                      <Row gutter={[12, 10]}>
                         <Col span={10}>
-                          <div className="space-y-3">
+                          <div className="space-y-2.5">
                              <div>
                                 <Text className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">Người xác nhận</Text>
-                                <div className="flex items-center gap-2.5">
-                                   <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-black text-[11px] border-2 border-white shadow-sm overflow-hidden uppercase">
-                                      {responderName.charAt(0)}
+                                <div className="flex items-center gap-2">
+                                   <div className="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-black text-[10px] border-2 border-white shadow-sm overflow-hidden uppercase">
+                                      {operatorName.charAt(0)}
                                    </div>
                                    <div>
-                                      <Text className="text-xs font-bold text-slate-700 block leading-tight">{responderName}</Text>
-                                      <Text className="text-[10px] text-slate-400">BP. {task.departments?.code || 'XNK'}</Text>
+                                      <Text className="text-[11px] font-bold text-slate-700 block leading-tight">{operatorName}</Text>
+                                      <Text className="text-[9px] text-slate-400">BP. {task.departments?.code || 'XNK'}</Text>
                                    </div>
                                 </div>
+                             </div>
+                             <div>
+                                <Text className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Người thao tác</Text>
+                                <Tag className="m-0 border-none bg-sky-50 text-sky-700 text-[9px] font-bold rounded-lg px-2 py-0.5">
+                                  {operatorName}
+                                </Tag>
                              </div>
                              {task.machine_info?.machine_id && (
                                <div>
                                   <Text className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Thiết bị sử dụng</Text>
-                                  <Text className="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg border border-indigo-100 inline-block">
+                                  <Text className="text-[11px] font-bold text-indigo-600 bg-indigo-50 px-2.5 py-0.5 rounded-lg border border-indigo-100 inline-block">
                                      {task.machine_info.machine_id}
                                   </Text>
                                </div>
@@ -754,9 +800,9 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
                           </div>
                         </Col>
                         
-                        <Col span={14} className="border-l border-slate-100 pl-4">
-                           <div className="grid grid-cols-2 gap-3">
-                              <div className="space-y-3">
+                        <Col span={14} className="border-l border-slate-100 pl-3">
+                           <div className="grid grid-cols-2 gap-2.5">
+                              <div className="space-y-2.5">
                                  <div>
                                     <Text className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Thời gian phản hồi</Text>
                                     <div className="flex items-center gap-2">
@@ -779,6 +825,14 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
                                        )}
                                     </div>
                                  </div>
+                                 {previousTask && (
+                                   <div>
+                                      <Text className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Thời gian giữa các bước</Text>
+                                      <Text className={`text-[11px] font-black ${timeBetweenSteps !== null && timeBetweenSteps > 30 ? 'text-orange-600' : 'text-slate-600'}`}>
+                                        {formatDurationMinutes(timeBetweenSteps)}
+                                      </Text>
+                                   </div>
+                                 )}
                                  {task.ready_at && (
                                    <div>
                                       <Text className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Giao việc lúc</Text>
@@ -792,7 +846,7 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
                                    </div>
                                  )}
                               </div>
-                              <div className="space-y-3">
+                              <div className="space-y-2.5">
                                  {task.start_time && (
                                    <div>
                                       <Text className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Xác nhận lúc</Text>
@@ -1005,17 +1059,23 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
 
                     <Row gutter={24}>
                       <Col span={12}>
-                        <Form.Item name="paper_type" label="Loại giấy">
-                          <Select placeholder="Chọn loại giấy">
-                            <Option value="C150">C150 (Couche 150g)</Option>
-                            <Option value="C200">C200 (Couche 200g)</Option>
-                            <Option value="C250">C250 (Couche 250g)</Option>
-                            <Option value="C300">C300 (Couche 300g)</Option>
-                            <Option value="Ford70">Ford 70g</Option>
-                            <Option value="Ford80">Ford 80g</Option>
-                            <Option value="Bristol">Bristol</Option>
-                            <Option value="Kraft">Kraft</Option>
-                          </Select>
+                        <Form.Item
+                          name="main_material_id"
+                          label="Nguyên liệu chính (từ kho)"
+                          rules={[{ required: true, message: 'Vui lòng chọn nguyên liệu chính từ kho' }]}
+                        >
+                          <Select
+                            showSearch
+                            optionFilterProp="label"
+                            placeholder="Chọn nguyên liệu chính"
+                            options={materials.map((m: any) => ({
+                              value: m.id,
+                              label: `${m.name} (Tồn: ${Number(m.stock_quantity || 0).toLocaleString()} ${m.unit || ''})`,
+                            }))}
+                          />
+                        </Form.Item>
+                        <Form.Item name="paper_type" hidden>
+                          <Input />
                         </Form.Item>
                       </Col>
                     </Row>
@@ -1046,14 +1106,14 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
                       </div>
 
                       {selectedSteps.length > 0 ? (
-                        <div className="flex flex-wrap items-start gap-y-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
                           {selectedSteps.map((step, index) => (
-                            <div key={`${step.deptId}-${index}`} className="flex items-start">
-                              <div className="flex flex-col gap-2 items-center">
+                            <div key={`${step.deptId}-${index}`} className="w-full rounded-xl border border-slate-200 bg-white p-3">
+                              <div className="flex flex-col gap-2 items-stretch">
                                 <Tag 
                                   closable 
                                   onClose={(e: React.MouseEvent) => { e.preventDefault(); handleRemoveStep(index); }}
-                                  className="px-3 py-2 rounded-xl border-blue-100 bg-white shadow-sm flex items-center gap-2 m-0"
+                                  className="w-full px-3 py-2 rounded-xl border-blue-100 bg-blue-50/60 shadow-sm flex items-center gap-2 m-0"
                                   color="blue"
                                 >
                                   <span className="bg-blue-600 text-white w-5 h-5 flex items-center justify-center rounded-full text-[10px] font-bold">
@@ -1061,14 +1121,28 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
                                   </span>
                                   <span className="font-bold text-slate-700">{getDeptName(step.deptId)}</span>
                                 </Tag>
-                                <div className="px-2 py-0.5 bg-slate-100 rounded-lg flex items-center gap-1">
+                                <div className="w-full px-2 py-0.5 bg-slate-100 rounded-lg flex items-center gap-1">
                                   <ClockCircleOutlined className="text-[10px] text-slate-400" />
                                   <Input 
-                                    type="datetime-local"
+                                    type={index === 0 ? 'date' : 'datetime-local'}
                                     size="small" 
-                                    value={step.deadline || ''} 
-                                    onChange={(e) => handleUpdateDeadline(index, e.target.value)}
-                                    className="w-40 text-[10px] font-bold"
+                                    value={
+                                      step.deadline
+                                        ? (index === 0
+                                            ? dayjs(step.deadline).format('YYYY-MM-DD')
+                                            : dayjs(step.deadline).format('YYYY-MM-DDTHH:mm'))
+                                        : ''
+                                    }
+                                    onChange={(e) => {
+                                      const value = e.target.value;
+                                      handleUpdateDeadline(
+                                        index,
+                                        value
+                                          ? (index === 0 ? `${value}T23:59` : value)
+                                          : null
+                                      );
+                                    }}
+                                    className="w-full text-[10px] font-bold"
                                     placeholder="Chọn deadline"
                                   />
                                 </div>
@@ -1076,20 +1150,20 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
                                   rows={2}
                                   value={step.note || ''}
                                   onChange={(e) => handleUpdateStepNote(index, e.target.value)}
-                                  className="w-52"
+                                  className="w-full"
                                   placeholder="Ghi chú bước này..."
                                 />
                                 <Select
                                   size="small"
                                   value={step.materialStatus}
-                                  className="w-52"
+                                  className="w-full"
                                   onChange={(value) => handleUpdateStepMaterialStatus(index, value)}
                                   options={[
                                     { value: 'waiting_material', label: 'Chờ vật tư' },
                                     { value: 'material_ready', label: 'Cấp đủ vật tư' },
                                   ]}
                                 />
-                                <div className="w-52 space-y-1">
+                                <div className="w-full space-y-1">
                                   {(step.materials || []).map((material: StepMaterialDraft, materialIdx: number) => (
                                     <div key={`${index}-mat-${materialIdx}`} className="flex items-center gap-1">
                                       <Select
@@ -1135,9 +1209,6 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
                                   </Button>
                                 </div>
                               </div>
-                              {index < selectedSteps.length - 1 && (
-                                <DoubleRightOutlined className="mx-2 text-slate-300 text-[10px] mb-6" />
-                              )}
                             </div>
                           ))}
                         </div>
@@ -1260,12 +1331,12 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
           }}>Sửa đơn hàng</Button>,
           <Button key="print" type="primary" icon={<PrinterOutlined />} className="rounded-xl h-10 px-6 bg-indigo-600 border-none font-semibold" onClick={generateLSX_PDF}>Phát lệnh in (LSX)</Button>
         ]}
-        width={1000}
-        centered
+        width="94vw"
+        style={{ top: 16 }}
         wrapClassName="designer-modal"
         styles={{
           header: { paddingBottom: 12, borderBottom: '1px solid #eef2ff' },
-          body: { paddingTop: 14 },
+          body: { paddingTop: 14, maxHeight: 'calc(100vh - 220px)', overflowY: 'auto' },
           footer: { borderTop: '1px solid #f1f5f9', paddingTop: 14, marginTop: 8 },
         }}
       >
@@ -1282,7 +1353,7 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
             }
           }} 
           items={tabItems} 
-          className="min-h-[500px]" 
+          className="min-h-[640px]" 
           destroyOnHidden={false}
         />
       </Modal>

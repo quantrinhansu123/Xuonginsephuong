@@ -538,7 +538,9 @@ export default function TaskActionModal({ visible, task, onClose, onRefresh }: T
         <div className="p-4">
           <Card className="bg-blue-50 border-blue-100 shadow-sm rounded-2xl overflow-hidden mb-6">
             <Descriptions title="Yêu cầu Cấp phát Vật tư" bordered size="small" column={1}>
-              <Descriptions.Item label="Loại vật tư">{task?.production_orders?.specs?.paper_type || 'Giấy in chuẩn'}</Descriptions.Item>
+              <Descriptions.Item label="Loại vật tư">
+                {task?.production_orders?.specs?.main_material_name || task?.production_orders?.specs?.paper_type || 'Giấy in chuẩn'}
+              </Descriptions.Item>
               <Descriptions.Item label="Định mức hệ thống">{task?.material_requested_qty || 1000} Tờ/Cuộn</Descriptions.Item>
               <Descriptions.Item label="Đã nhận">{task?.material_received_qty || 0} Tờ/Cuộn</Descriptions.Item>
             </Descriptions>

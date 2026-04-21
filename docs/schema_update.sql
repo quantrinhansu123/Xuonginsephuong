@@ -12,6 +12,10 @@ ALTER TABLE departments ADD COLUMN IF NOT EXISTS permissions TEXT[] DEFAULT ARRA
 ALTER TABLE production_orders
 ADD COLUMN IF NOT EXISTS material_allocations JSONB DEFAULT '[]'::jsonb;
 
+-- 1.2 Add deadline on production orders
+ALTER TABLE production_orders
+ADD COLUMN IF NOT EXISTS deadline TIMESTAMP WITH TIME ZONE;
+
 -- 2. Add workflow_templates table for configurable workflows
 CREATE TABLE IF NOT EXISTS workflow_templates (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

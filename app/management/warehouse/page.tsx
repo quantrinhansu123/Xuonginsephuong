@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Table, Card, Typography, Row, Col, Space, Button, 
   Input, Form, Modal, InputNumber, Select, Tag, message, 
-  Tabs, Statistic, Badge, Alert, Empty, Segmented
+  Tabs, Statistic, Badge, Alert, Empty, Segmented, Popconfirm
 } from 'antd';
 import { 
   DatabaseOutlined, 
@@ -19,7 +19,8 @@ import {
   FileExcelOutlined,
   FilePdfOutlined,
   EyeOutlined,
-  EditOutlined
+  EditOutlined,
+  DeleteOutlined
 } from '@ant-design/icons';
 import { supabase } from '@/lib/supabase';
 import dayjs from 'dayjs';
@@ -42,6 +43,7 @@ export default function WarehousePage() {
   const [selectedMaterial, setSelectedMaterial] = useState<any>(null);
   const [form] = Form.useForm();
   const [exportType, setExportType] = useState('import');
+  const [deletingMaterialId, setDeletingMaterialId] = useState<number | null>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -156,10 +158,57 @@ export default function WarehousePage() {
   };
 
   const lowStockMaterials = materials.filter(m => m.stock_quantity <= m.min_stock);
+  const todayExportCount = logs.filter((l) => l.type === 'export' && dayjs(l.created_at).isSame(dayjs(), 'day')).length;
+
+  const stats = [
+    {
+      title: 'TỔNG VẬT TƯ',
+      value: materials.length,
+      icon: <DatabaseOutlined />,
+      cardClass: 'border-slate-200 bg-white',
+      valueClass: 'text-slate-900',
+      iconWrapClass: 'bg-indigo-50 text-indigo-600 border border-indigo-100',
+    },
+    {
+      title: 'SẮP HẾT HÀNG',
+      value: lowStockMaterials.length,
+      icon: <WarningOutlined />,
+      cardClass: lowStockMaterials.length > 0 ? 'border-rose-200 bg-rose-50/70' : 'border-slate-200 bg-white',
+      valueClass: lowStockMaterials.length > 0 ? 'text-rose-600' : 'text-slate-900',
+      iconWrapClass: lowStockMaterials.length > 0 ? 'bg-rose-100 text-rose-600 border border-rose-200' : 'bg-slate-100 text-slate-500 border border-slate-200',
+    },
+    {
+      title: 'CẤP PHÁT HÔM NAY',
+      value: todayExportCount,
+      icon: <ArrowDownOutlined />,
+      cardClass: 'border-emerald-200 bg-emerald-50/60',
+      valueClass: 'text-emerald-700',
+      iconWrapClass: 'bg-emerald-100 text-emerald-600 border border-emerald-200',
+    },
+  ];
 
   const handleMaterialClick = (material: any) => {
     setSelectedMaterial(material);
     setMaterialModalVisible(true);
+  };
+
+  const handleDeleteMaterial = async (material: any) => {
+    setDeletingMaterialId(material.id);
+    try {
+      const { error } = await supabase
+        .from('materials')
+        .delete()
+        .eq('id', material.id);
+
+      if (error) throw error;
+      message.success(`Đã xóa vật tư: ${material.name}`);
+      fetchData();
+    } catch (err) {
+      console.error(err);
+      message.error('Không thể xóa vật tư');
+    } finally {
+      setDeletingMaterialId(null);
+    }
   };
 
   const tabItems = [
@@ -204,11 +253,30 @@ export default function WarehousePage() {
               {
                 title: 'Thao tác',
                 key: 'action',
-                width: 60,
+                width: 140,
                 align: 'right' as const,
                 onCell: () => ({ 'data-label': 'Thao tác' } as any),
                 render: (_: any, record: any) => (
-                  <Button type="text" icon={<EyeOutlined className="text-slate-400 hover:text-indigo-600" />} onClick={() => handleMaterialClick(record)} />
+                  <Space size={4}>
+                    <Button
+                      size="small"
+                      className="rounded-lg border-slate-200 text-slate-600"
+                      icon={<EditOutlined />}
+                      onClick={() => handleMaterialClick(record)}
+                    >
+                      Sửa
+                    </Button>
+                    <Popconfirm
+                      title="Xóa vật tư này?"
+                      description={`Vật tư: ${record.name}`}
+                      okText="Xóa"
+                      cancelText="Hủy"
+                      okButtonProps={{ danger: true, loading: deletingMaterialId === record.id }}
+                      onConfirm={() => handleDeleteMaterial(record)}
+                    >
+                      <Button type="text" danger icon={<DeleteOutlined />} />
+                    </Popconfirm>
+                  </Space>
                 ),
               }
             ]} 
@@ -270,12 +338,29 @@ export default function WarehousePage() {
                 {
                   title: 'Thao tác',
                   key: 'action',
-                  width: 100,
+                  width: 140,
                   align: 'right' as const,
                   onCell: () => ({ 'data-label': 'Thao tác' } as any),
                   render: (_: any, record: any) => (
-                    <Space>
-                      <Button type="text" icon={<EditOutlined className="text-slate-400" />} onClick={() => handleMaterialClick(record)} />
+                    <Space size={4}>
+                      <Button
+                        size="small"
+                        className="rounded-lg border-slate-200 text-slate-600"
+                        icon={<EditOutlined />}
+                        onClick={() => handleMaterialClick(record)}
+                      >
+                        Sửa
+                      </Button>
+                      <Popconfirm
+                        title="Xóa vật tư này?"
+                        description={`Vật tư: ${record.name}`}
+                        okText="Xóa"
+                        cancelText="Hủy"
+                        okButtonProps={{ danger: true, loading: deletingMaterialId === record.id }}
+                        onConfirm={() => handleDeleteMaterial(record)}
+                      >
+                        <Button type="text" danger icon={<DeleteOutlined />} />
+                      </Popconfirm>
                     </Space>
                   ),
                 }
@@ -314,8 +399,9 @@ export default function WarehousePage() {
   }
 
   return (
-    <div className="space-y-8 max-w-[1600px] mx-auto animate-in">
-      <div className="flex justify-between items-end">
+    <div className="space-y-6 max-w-[1600px] mx-auto animate-in px-1">
+      <div className="rounded-3xl border border-slate-200 bg-gradient-to-r from-white via-slate-50 to-indigo-50 p-6 shadow-sm">
+        <div className="flex justify-between items-end gap-4">
         <div>
           <Title level={2} className="m-0 font-black tracking-tight text-slate-900">
             MASTER <span className="text-indigo-600">WAREHOUSE</span>
@@ -326,46 +412,49 @@ export default function WarehousePage() {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Button icon={<FileExcelOutlined />} onClick={exportMaterialsToExcel} className="h-12 px-6 rounded-2xl font-bold border-slate-200">XUẤT EXCEL</Button>
+          <Button icon={<FileExcelOutlined />} onClick={exportMaterialsToExcel} className="h-11 px-5 rounded-xl font-semibold border-slate-200">
+            Xuất Excel
+          </Button>
           <Button 
             type="primary" 
             icon={<PlusOutlined />} 
             onClick={() => setTransactionModalVisible(true)}
-            className="h-12 px-8 rounded-2xl font-bold shadow-indigo-200 shadow-lg"
+            className="h-11 px-6 rounded-xl font-semibold shadow-indigo-200 shadow-md bg-indigo-600 border-none"
           >
-            GIAO DỊCH KHO
+            Giao dịch kho
           </Button>
         </div>
+      </div>
       </div>
 
       {lowStockMaterials.length > 0 && (
         <Alert
-          title={<Text strong className="text-red-800">CẢNH BÁO TỒN KHO DƯỚI NGƯỠNG AN TOÀN</Text>}
+          title={<Text strong className="text-red-800">Cảnh báo tồn kho dưới ngưỡng an toàn</Text>}
           description={
-            <div className="mt-2">
-              {lowStockMaterials.map(m => <Tag key={m.id} color="red" className="mb-1">{m.name}: Chỉ còn {m.stock_quantity} {m.unit}</Tag>)}
+            <div className="mt-2 flex flex-wrap gap-2">
+              {lowStockMaterials.map(m => (
+                <Tag key={m.id} color="red" className="m-0 rounded-lg border-red-200 px-2.5 py-0.5">
+                  {m.name}: còn {m.stock_quantity} {m.unit}
+                </Tag>
+              ))}
             </div>
           }
           type="error"
           showIcon
-          icon={<WarningOutlined className="text-xl" />}
+          icon={<WarningOutlined />}
           className="border-red-200 bg-red-50 rounded-2xl shadow-sm"
         />
       )}
 
       <Row gutter={[24, 24]}>
-        {[
-          { title: "TỔNG VẬT TƯ", value: materials.length, icon: <DatabaseOutlined />, color: "indigo" },
-          { title: "SẮP HẾT HÀNG", value: lowStockMaterials.length, icon: <WarningOutlined />, color: "rose", highlight: lowStockMaterials.length > 0 },
-          { title: "CẤP PHÁT (24H)", value: logs.filter(l => l.type === 'export').length, icon: <ArrowDownOutlined />, color: "emerald" }
-        ].map((stat, idx) => (
+        {stats.map((stat, idx) => (
           <Col span={8} key={idx}>
-            <div className={`ui-surface p-6 flex items-center justify-between border-none ${stat.highlight ? 'animate-pulse-subtle shadow-rose-100 shadow-lg' : ''}`}>
+            <div className={`p-5 rounded-2xl border shadow-sm flex items-center justify-between ${stat.cardClass}`}>
               <div className="flex flex-col">
-                <Text className="premium-label mb-1 whitespace-nowrap">{stat.title}</Text>
-                <span className={`text-3xl font-black tracking-tight ${stat.highlight ? 'text-rose-600' : 'text-slate-900'}`}>{stat.value}</span>
+                <Text className="text-[11px] font-bold tracking-wider text-slate-500 mb-1 whitespace-nowrap">{stat.title}</Text>
+                <span className={`text-3xl font-black tracking-tight ${stat.valueClass}`}>{stat.value}</span>
               </div>
-              <div className={`p-4 rounded-2xl bg-${stat.color}-50 text-${stat.color}-600 text-2xl shadow-sm border border-${stat.color}-100`}>
+              <div className={`p-3 rounded-xl text-xl shadow-sm ${stat.iconWrapClass}`}>
                 {stat.icon}
               </div>
             </div>
@@ -373,7 +462,7 @@ export default function WarehousePage() {
         ))}
       </Row>
 
-      <Tabs defaultActiveKey="1" items={tabItems} className="premium-tabs-layout" centered />
+      <Tabs defaultActiveKey="1" items={tabItems} className="premium-tabs-layout" />
 
       <MaterialDetailModal
         visible={materialModalVisible}
@@ -442,10 +531,21 @@ export default function WarehousePage() {
       </Modal>
 
       <style jsx global>{`
-        .premium-tabs-layout .ant-tabs-nav { margin-bottom: 24px !important; }
-        .premium-tabs-layout .ant-tabs-tab { padding: 12px 0 !important; font-size: 11px !important; font-weight: 800 !important; text-transform: uppercase !important; color: #94a3b8 !important; letter-spacing: 1px !important; }
+        .premium-tabs-layout .ant-tabs-nav { margin-bottom: 12px !important; }
+        .premium-tabs-layout .ant-tabs-nav-wrap { padding: 0 8px !important; }
+        .premium-tabs-layout .ant-tabs-tab { padding: 12px 8px !important; font-size: 11px !important; font-weight: 800 !important; text-transform: uppercase !important; color: #94a3b8 !important; letter-spacing: 1px !important; }
         .premium-tabs-layout .ant-tabs-tab-active .ant-tabs-tab-btn { color: #6366f1 !important; }
         .premium-tabs-layout .ant-tabs-ink-bar { background: #6366f1 !important; height: 3px !important; border-radius: 3px 3px 0 0 !important; }
+        .premium-tabs-layout .ant-table-thead > tr > th {
+          background: #f8fafc !important;
+          color: #64748b !important;
+          font-size: 11px !important;
+          letter-spacing: 0.08em !important;
+          text-transform: uppercase !important;
+        }
+        .premium-tabs-layout .ant-table-tbody > tr:hover > td {
+          background: #f8fafc !important;
+        }
       `}</style>
     </div>
   );

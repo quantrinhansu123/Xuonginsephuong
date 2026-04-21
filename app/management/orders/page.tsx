@@ -618,6 +618,7 @@ export default function OrdersPage() {
                   const tasks = [...(order.tasks || [])].sort((a, b) => (a.sequence_order || 0) - (b.sequence_order || 0));
                   const firstThree = tasks.slice(0, 3);
                   const isOverdue = order.deadline && dayjs(order.deadline).endOf('day').isBefore(dayjs()) && !['done', 'completed'].includes(order.status);
+                  const isNearDeadline = order.deadline && !isOverdue && dayjs(order.deadline).endOf('day').diff(dayjs(), 'day') <= 2;
 
                   return (
                     <tr key={order.id} className={`hover:bg-slate-50 transition-colors ${isOverdue ? 'bg-rose-50/50' : ''}`}>
@@ -632,12 +633,22 @@ export default function OrdersPage() {
                           <span className="font-semibold text-sm">{order.customers?.name || 'Khách lẻ'}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-slate-600 max-w-[320px] truncate">{order.title}</td>
+                      <td className="px-6 py-4 max-w-[320px]">
+                        <div className="text-sm text-slate-600 truncate">{order.title}</div>
+                      </td>
                       <td className="px-6 py-4 text-sm font-medium">
                         {(order.specs?.quantity || 0).toLocaleString()} {order.specs?.unit || ''}
                       </td>
-                      <td className={`px-6 py-4 text-sm ${isOverdue ? 'text-rose-600 font-bold' : 'text-slate-700'}`}>
-                        {order.deadline ? dayjs(order.deadline).format('DD/MM/YYYY') : 'Chưa cập nhật'}
+                      <td className="px-6 py-4">
+                        <div className={`inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-bold ${
+                          isOverdue
+                            ? 'bg-rose-100 text-rose-700'
+                            : isNearDeadline
+                              ? 'bg-amber-100 text-amber-700'
+                              : 'bg-slate-100 text-slate-700'
+                        }`}>
+                          {order.deadline ? dayjs(order.deadline).format('DD/MM/YYYY') : 'Chưa cập nhật'}
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
@@ -723,7 +734,7 @@ export default function OrdersPage() {
                           Bước {task.sequence_order} - {task.departments?.name || getDeptName(task.department_id)}
                         </Text>
                         <Text className="block text-[10px] text-slate-400">
-                          {task.production_orders?.deadline ? `Deadline ${dayjs(task.production_orders.deadline).format('DD/MM')}` : 'Chưa có deadline'}
+                          {task.production_orders?.deadline ? `Deadline: ${dayjs(task.production_orders.deadline).format('DD/MM/YYYY')}` : 'Deadline: Chưa cập nhật'}
                         </Text>
                       </div>
                     ))}

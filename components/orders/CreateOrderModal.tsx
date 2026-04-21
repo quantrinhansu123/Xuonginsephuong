@@ -2,21 +2,20 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  Modal, Form, Input, Select, InputNumber, Checkbox, Tabs,
-  Row, Col, Divider, Space, Button, message, Typography, Alert, Spin, Tag 
+  Modal, Form, Input, Select, InputNumber, Checkbox, Tabs, DatePicker,
+  Row, Col, Divider, Space, Button, message, Typography, Alert, Spin, Tag, TreeSelect
 } from 'antd';
 import { supabase } from '@/lib/supabase';
 import { validateWorkflow, getWorkflowTemplates, clearCache } from '@/lib/auth';
+import dayjs from 'dayjs';
 
 const { Option } = Select;
 const { Title, Text } = Typography;
 
 import { 
-  ArrowRightOutlined, 
   CloseOutlined, 
   OrderedListOutlined,
   PlusCircleOutlined,
-  DoubleRightOutlined,
   InfoCircleOutlined,
   ClockCircleOutlined,
   DollarOutlined,
@@ -24,12 +23,8 @@ import {
   LeftOutlined,
   RightOutlined,
   PlusOutlined,
-  WarningOutlined,
-  ShoppingCartOutlined,
-  HolderOutlined,
-  SwapOutlined
+  ShoppingCartOutlined
 } from '@ant-design/icons';
-import { Dropdown, type MenuProps } from 'antd';
 
 interface CreateOrderModalProps {
   visible: boolean;
@@ -44,16 +39,28 @@ interface WorkflowTemplate {
   department_sequence: number[];
 }
 
+interface WorkflowStepConfig {
+  deptId: number;
+  duration: number;
+  material_name?: string;
+  material_requested_qty?: number;
+}
+
 export default function CreateOrderModal({ visible, onClose, customerId }: CreateOrderModalProps) {
   const [form] = Form.useForm();
+  const [stepSetupForm] = Form.useForm();
   const [customers, setCustomers] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
+  const [materials, setMaterials] = useState<any[]>([]);
   const [workflowTemplates, setWorkflowTemplates] = useState<WorkflowTemplate[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [selectedSteps, setSelectedSteps] = useState<any[]>([]);
+  const [selectedSteps, setSelectedSteps] = useState<WorkflowStepConfig[]>([]);
+  const [selectedTemplateIds, setSelectedTemplateIds] = useState<string[]>([]);
   const [workflowError, setWorkflowError] = useState<string>('');
   const [activeTab, setActiveTab] = useState('1');
+  const [editingStepIndex, setEditingStepIndex] = useState<number | null>(null);
+  const [stepSetupVisible, setStepSetupVisible] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -82,6 +89,13 @@ export default function CreateOrderModal({ visible, onClose, customerId }: Creat
       if (deptError) throw deptError;
       setDepartments(deptData || []);
 
+      const { data: materialData, error: materialError } = await supabase
+        .from('materials')
+        .select('id, name, unit, stock_quantity')
+        .order('name', { ascending: true });
+      if (materialError) throw materialError;
+      setMaterials(materialData || []);
+
       // Fetch workflow templates from database
       const templates = await getWorkflowTemplates();
       setWorkflowTemplates(templates);
@@ -97,15 +111,29 @@ export default function CreateOrderModal({ visible, onClose, customerId }: Creat
   const handleWorkflowSelect = (workflowSteps: number[]) => {
     const stepsWithDuration = workflowSteps.map(id => ({
       deptId: id,
-      duration: 60 // Default 60 minutes
+      duration: 60, // Default 60 minutes
+      material_name: '',
+      material_requested_qty: 0,
     }));
     setSelectedSteps(stepsWithDuration);
     form.setFieldsValue({ workflow_steps: stepsWithDuration });
     setWorkflowError('');
   };
 
-  const handleAddStep = (deptId: number) => {
-    const newSteps = [...selectedSteps, { deptId, duration: 60 }];
+  const handleDepartmentCheckboxChange = (checkedValues: any) => {
+    const deptIds = Array.from(
+      new Set(
+        (Array.isArray(checkedValues) ? checkedValues : [checkedValues])
+          .map((value: string | number) => Number(value))
+          .filter((value: number) => Number.isFinite(value))
+      )
+    );
+
+    const newSteps = deptIds.map((deptId: number) => {
+      const existing = selectedSteps.find((step: any) => step.deptId === deptId);
+      return existing || { deptId, duration: 60, material_name: '', material_requested_qty: 0 };
+    });
+
     setSelectedSteps(newSteps);
     form.setFieldsValue({ workflow_steps: newSteps });
     setWorkflowError('');
@@ -126,25 +154,46 @@ export default function CreateOrderModal({ visible, onClose, customerId }: Creat
     form.setFieldsValue({ workflow_steps: newSteps });
   };
 
-  const handleReplaceStep = (index: number, newDeptId: number) => {
-    const newSteps = [...selectedSteps];
-    newSteps[index] = { ...newSteps[index], deptId: newDeptId };
-    setSelectedSteps(newSteps);
-    form.setFieldsValue({ workflow_steps: newSteps });
+  const openStepSetup = (index: number) => {
+    const step = selectedSteps[index];
+    if (!step) return;
+    setEditingStepIndex(index);
+    stepSetupForm.setFieldsValue({
+      duration: step.duration ?? 60,
+      material_name: step.material_name || '',
+      material_requested_qty: step.material_requested_qty ?? 0,
+    });
+    setStepSetupVisible(true);
   };
 
-  const handleUpdateDuration = (index: number, duration: number | null) => {
-    const newSteps = [...selectedSteps];
-    newSteps[index] = { ...newSteps[index], duration: duration || 0 };
-    setSelectedSteps(newSteps);
-    form.setFieldsValue({ workflow_steps: newSteps });
+  const submitStepSetup = async () => {
+    try {
+      const values = await stepSetupForm.validateFields();
+      if (editingStepIndex === null) return;
+
+      const nextSteps = [...selectedSteps];
+      nextSteps[editingStepIndex] = {
+        ...nextSteps[editingStepIndex],
+        duration: Number(values.duration || 0),
+        material_name: values.material_name?.trim() || '',
+        material_requested_qty: Number(values.material_requested_qty || 0),
+      };
+
+      setSelectedSteps(nextSteps);
+      form.setFieldsValue({ workflow_steps: nextSteps });
+      setStepSetupVisible(false);
+      setEditingStepIndex(null);
+      message.success('Đã lưu cấu hình bước');
+    } catch (error) {
+      // Validation handled by form
+    }
   };
 
   const handleNext = async () => {
     try {
       // Validate current tab fields if necessary
       if (activeTab === '1') {
-        await form.validateFields(['customer_id', 'title', 'quantity']);
+        await form.validateFields(['customer_id', 'title', 'quantity', 'main_material_id', 'deadline']);
         setActiveTab('2');
       } else if (activeTab === '2') {
         if (selectedSteps.length === 0) {
@@ -175,17 +224,27 @@ export default function CreateOrderModal({ visible, onClose, customerId }: Creat
     setSubmitting(true);
     try {
       const orderCode = `LSX${Date.now().toString().slice(-6)}`;
+      const rawDeadline = values.deadline ?? form.getFieldValue('deadline');
+      const deadlineIso = rawDeadline && dayjs(rawDeadline).isValid()
+        ? dayjs(rawDeadline).endOf('day').toISOString()
+        : null;
+      const selectedMainMaterial = materials.find((m: any) => m.id === values.main_material_id);
       
       const orderData = {
         code: orderCode,
         customer_id: values.customer_id,
         title: values.title,
+        deadline: deadlineIso,
         specs: {
           quantity: values.quantity,
           unit: values.unit,
           size: values.size,
           sides: values.sides,
-          paper_type: values.paper_type,
+          main_material_id: values.main_material_id || null,
+          main_material_name: selectedMainMaterial?.name || null,
+          main_material_unit: selectedMainMaterial?.unit || null,
+          paper_type: selectedMainMaterial?.name || null,
+          estimated_pages: calculateEstimatedPages(values.quantity, values.size, values.sides),
         },
         financials: {
           unit_price: values.unit_price,
@@ -206,6 +265,17 @@ export default function CreateOrderModal({ visible, onClose, customerId }: Creat
 
       if (orderError) throw orderError;
 
+      // Ensure deadline is persisted on main order row even if payload normalization differs.
+      if (deadlineIso) {
+        const { error: deadlineUpdateError } = await supabase
+          .from('production_orders')
+          .update({ deadline: deadlineIso })
+          .eq('id', (order as any).id);
+        if (deadlineUpdateError) {
+          console.error('Deadline update failed:', deadlineUpdateError);
+        }
+      }
+
       // Create tasks for each department in sequence
       const tasksToCreate = values.workflow_steps.map((step: any, index: number) => ({
         order_id: (order as any).id,
@@ -214,6 +284,11 @@ export default function CreateOrderModal({ visible, onClose, customerId }: Creat
         status: index === 0 ? 'ready' : 'pending',
         ready_at: index === 0 ? new Date().toISOString() : null,
         estimated_duration_seconds: (step.duration || 60) * 60,
+        material_requested_qty: step.material_requested_qty || 0,
+        processing_info: {
+          material_name: step.material_name || null,
+          setup_note: 'Cấu hình từ màn tạo lệnh',
+        },
       }));
 
       const { error: tasksError } = await supabase.from('tasks').insert(tasksToCreate);
@@ -222,6 +297,7 @@ export default function CreateOrderModal({ visible, onClose, customerId }: Creat
       message.success(`Đã tạo lệnh sản xuất ${orderCode}`);
       form.resetFields();
       setSelectedSteps([]);
+      setSelectedTemplateIds([]);
       setWorkflowError('');
       onClose();
     } catch (err) {
@@ -235,6 +311,9 @@ export default function CreateOrderModal({ visible, onClose, customerId }: Creat
   const handleCancel = () => {
     form.resetFields();
     setSelectedSteps([]);
+    setSelectedTemplateIds([]);
+    setStepSetupVisible(false);
+    setEditingStepIndex(null);
     setActiveTab('1');
     setWorkflowError('');
     onClose();
@@ -249,6 +328,29 @@ export default function CreateOrderModal({ visible, onClose, customerId }: Creat
   // Format workflow template for display
   const formatWorkflowSteps = (steps: number[]) => {
     return steps.map(id => getDeptName(id)).join(' → ');
+  };
+
+  const getA4EquivalentFactor = (size?: string) => {
+    const normalized = (size || 'A4').toUpperCase();
+    const map: Record<string, number> = {
+      A6: 0.25,
+      A5: 0.5,
+      A4: 1,
+      A3: 2,
+    };
+    return map[normalized] ?? 1;
+  };
+
+  const calculateEstimatedPages = (quantity?: number, size?: string, sides?: number) => {
+    const qty = Number(quantity || 0);
+    if (!qty) return 0;
+
+    const sideCount = Number(sides || 1);
+    const sizeFactor = getA4EquivalentFactor(size);
+    const estimated = (qty * sizeFactor) / (sideCount === 2 ? 2 : 1);
+
+    // Luon lam tron len de du tru du trang in thuc te.
+    return Math.ceil(estimated);
   };
 
   return (
@@ -344,20 +446,57 @@ export default function CreateOrderModal({ visible, onClose, customerId }: Creat
 
                     <Row gutter={24}>
                       <Col span={12}>
-                        <Form.Item name="paper_type" label="Loại giấy">
-                          <Select placeholder="Chọn loại giấy">
-                            <Option value="C150">C150 (Couche 150g)</Option>
-                            <Option value="C200">C200 (Couche 200g)</Option>
-                            <Option value="C250">C250 (Couche 250g)</Option>
-                            <Option value="C300">C300 (Couche 300g)</Option>
-                            <Option value="Ford70">Ford 70g</Option>
-                            <Option value="Ford80">Ford 80g</Option>
-                            <Option value="Bristol">Bristol</Option>
-                            <Option value="Kraft">Kraft</Option>
-                          </Select>
+                        <Form.Item
+                          name="main_material_id"
+                          label="Nguyên liệu chính (lấy từ kho)"
+                          rules={[{ required: true, message: 'Vui lòng chọn nguyên liệu chính từ kho' }]}
+                        >
+                          <Select
+                            showSearch
+                            optionFilterProp="label"
+                            placeholder="Chọn nguyên liệu chính từ kho"
+                            options={materials.map((m: any) => ({
+                              value: m.id,
+                              label: `${m.name} (Tồn: ${Number(m.stock_quantity || 0).toLocaleString()} ${m.unit || ''})`,
+                            }))}
+                          />
+                        </Form.Item>
+                        <Form.Item name="paper_type" hidden>
+                          <Input />
+                        </Form.Item>
+                      </Col>
+                      <Col span={12}>
+                        <Form.Item
+                          name="deadline"
+                          label="Deadline"
+                          rules={[{ required: true, message: 'Vui lòng chọn deadline' }]}
+                        >
+                          <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" placeholder="Chọn ngày deadline" />
                         </Form.Item>
                       </Col>
                     </Row>
+
+                    <Form.Item shouldUpdate noStyle>
+                      {({ getFieldsValue }) => {
+                        const { quantity, size, sides } = getFieldsValue(['quantity', 'size', 'sides']);
+                        const estimatedPages = calculateEstimatedPages(quantity, size, sides);
+                        return (
+                          <div className="mt-1 mb-3 rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3">
+                            <div className="flex items-center justify-between gap-3">
+                              <Text className="text-xs font-semibold text-indigo-700">
+                                So trang du kien (quy doi A4)
+                              </Text>
+                              <Tag className="m-0 border-none bg-white text-indigo-700 font-bold text-sm px-3 py-1 rounded-lg">
+                                {estimatedPages.toLocaleString()} trang
+                              </Tag>
+                            </div>
+                            <Text className="text-[11px] text-indigo-500 block mt-1">
+                              Logic: A4 1 mat giu nguyen, 2 mat chia 2, A3 nhan 2 theo chuan A4.
+                            </Text>
+                          </div>
+                        );
+                      }}
+                    </Form.Item>
                   </div>
                 )
               },
@@ -385,67 +524,83 @@ export default function CreateOrderModal({ visible, onClose, customerId }: Creat
                       </div>
 
                       {selectedSteps.length > 0 ? (
-                        <div className="flex flex-wrap items-center gap-y-3">
-                      {selectedSteps.map((deptId, index) => {
-                        const deptItems: MenuProps['items'] = departments.map(d => ({
-                          key: d.id.toString(),
-                          label: d.name,
-                          onClick: () => handleReplaceStep(index, d.id)
-                        }));
-
-                        return (
-                          <div 
-                            key={`${deptId}-${index}`} 
-                            className="flex items-center"
-                            draggable
-                            onDragStart={(e) => {
-                              e.dataTransfer.setData('dragIndex', index.toString());
-                              e.currentTarget.classList.add('opacity-40');
-                            }}
-                            onDragEnd={(e) => {
-                              e.currentTarget.classList.remove('opacity-40');
-                            }}
-                            onDragOver={(e) => e.preventDefault()}
-                            onDrop={(e) => {
-                              const dragIndex = parseInt(e.dataTransfer.getData('dragIndex'));
-                              handleReorder(dragIndex, index);
-                            }}
-                          >
-                            <div className="flex flex-col gap-1 items-center">
-                              <Dropdown menu={{ items: deptItems }} trigger={['click']}>
-                                <Tag 
-                                  closable 
-                                  onClose={(e: React.MouseEvent) => { e.preventDefault(); handleRemoveStep(index); }}
-                                  className="px-3 py-2 rounded-xl border-blue-100 bg-white shadow-sm flex items-center gap-2 m-0 cursor-move hover:border-blue-300 transition-all"
-                                  color="blue"
-                                >
-                                  <HolderOutlined className="text-slate-300 mr-1" />
-                                  <span className="bg-blue-600 text-white w-5 h-5 flex items-center justify-center rounded-full text-[10px] font-bold">
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+                          {selectedSteps.map((step, index) => (
+                            <div
+                              key={`${step.deptId}-${index}`}
+                              className="rounded-2xl border border-indigo-100 bg-white p-3 shadow-sm hover:shadow-md hover:border-indigo-200 transition-all cursor-pointer"
+                              onClick={() => openStepSetup(index)}
+                            >
+                              <div className="flex items-start justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                  <span className="w-6 h-6 rounded-full bg-indigo-600 text-white text-[11px] font-bold flex items-center justify-center">
                                     {index + 1}
                                   </span>
-                                  <span className="font-bold text-slate-700">{getDeptName(selectedSteps[index].deptId)}</span>
-                                  <SwapOutlined className="text-slate-300 ml-1 text-[10px]" />
-                                </Tag>
-                              </Dropdown>
-                              <div className="px-2 py-0.5 bg-slate-100 rounded-lg flex items-center gap-1">
-                                <ClockCircleOutlined className="text-[10px] text-slate-400" />
-                                <InputNumber 
-                                  size="small" 
-                                  min={1} 
-                                  value={selectedSteps[index].duration} 
-                                  onChange={(v) => handleUpdateDuration(index, v)}
-                                  className="w-16 border-none bg-transparent font-bold text-[10px]"
-                                  suffix={<span className="text-[9px] text-slate-400">P</span>}
-                                  controls={false}
+                                  <Text className="font-bold text-slate-700">{getDeptName(step.deptId)}</Text>
+                                </div>
+                                <Button
+                                  type="text"
+                                  size="small"
+                                  danger
+                                  icon={<CloseOutlined />}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRemoveStep(index);
+                                  }}
+                                  className="!px-1"
                                 />
                               </div>
+
+                              <div className="mt-3 flex flex-wrap items-center gap-2">
+                                <Tag className="m-0 border-none bg-indigo-50 text-indigo-700 font-semibold">
+                                  <ClockCircleOutlined /> {step.duration || 0} phút
+                                </Tag>
+                                <Tag className="m-0 border-none bg-amber-50 text-amber-700 font-semibold">
+                                  NL: {step.material_name?.trim() ? step.material_name : 'Chưa chọn'}
+                                </Tag>
+                                <Tag className="m-0 border-none bg-slate-100 text-slate-700 font-semibold">
+                                  SL NL: {step.material_requested_qty || 0}
+                                </Tag>
+                              </div>
+
+                              <div className="mt-3 flex items-center justify-between">
+                                <Button
+                                  size="small"
+                                  icon={<LeftOutlined />}
+                                  disabled={index === 0}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleReorder(index, index - 1);
+                                  }}
+                                >
+                                  Lùi
+                                </Button>
+                                <Button
+                                  size="small"
+                                  type="primary"
+                                  icon={<PlusCircleOutlined />}
+                                  className="bg-indigo-600 border-none"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openStepSetup(index);
+                                  }}
+                                >
+                                  Thiết lập
+                                </Button>
+                                <Button
+                                  size="small"
+                                  icon={<RightOutlined />}
+                                  disabled={index === selectedSteps.length - 1}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleReorder(index, index + 1);
+                                  }}
+                                >
+                                  Tiến
+                                </Button>
+                              </div>
                             </div>
-                            {index < selectedSteps.length - 1 && (
-                              <DoubleRightOutlined className="mx-2 text-slate-300 text-[10px] mb-6" />
-                            )}
-                          </div>
-                        );
-                      })}
+                          ))}
                         </div>
                       ) : (
                         <div className="py-8 text-center text-slate-400 italic text-sm">
@@ -456,34 +611,43 @@ export default function CreateOrderModal({ visible, onClose, customerId }: Creat
 
                     <div className="mb-6">
                       <Text strong className="block mb-3 text-slate-600 text-sm">Chọn nhanh quy trình mẫu:</Text>
-                      <div className="flex flex-wrap gap-2">
-                        {workflowTemplates.map((wf) => (
-                          <Button
-                            key={wf.id}
-                            size="small"
-                            onClick={() => handleWorkflowSelect(wf.department_sequence)}
-                            className="rounded-lg border-indigo-100 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white h-9 px-4"
-                          >
-                            {wf.name}
-                          </Button>
-                        ))}
-                      </div>
+                      <TreeSelect
+                        style={{ width: '100%' }}
+                        treeCheckable
+                        maxTagCount={1}
+                        value={selectedTemplateIds}
+                        placeholder="Sổ xuống để chọn quy trình mẫu (checkbox)"
+                        treeData={workflowTemplates.map((wf) => ({
+                          value: wf.id,
+                          title: wf.name,
+                        }))}
+                        onChange={(values) => {
+                          const selected = Array.isArray(values) ? values : [];
+                          const latest = String(selected[selected.length - 1] || '');
+                          const normalized = latest ? [latest] : [];
+                          setSelectedTemplateIds(normalized);
+                          const template = workflowTemplates.find((wf) => wf.id === latest);
+                          if (template) {
+                            handleWorkflowSelect(template.department_sequence || []);
+                          }
+                        }}
+                      />
                     </div>
 
                     <div className="mb-4">
                       <Text strong className="block mb-3 text-slate-600 text-sm">Thêm bộ phận lẻ vào quy trình:</Text>
-                      <Space wrap>
-                        {departments.map(dept => (
-                          <Button 
-                            key={dept.id} 
-                            icon={<PlusCircleOutlined />}
-                            onClick={() => handleAddStep(dept.id)}
-                            className="rounded-xl hover:border-blue-500 h-9"
-                          >
-                            {dept.name}
-                          </Button>
-                        ))}
-                      </Space>
+                      <TreeSelect
+                        style={{ width: '100%' }}
+                        treeCheckable
+                        showCheckedStrategy={TreeSelect.SHOW_ALL}
+                        value={Array.from(new Set(selectedSteps.map((step: any) => String(step.deptId))))}
+                        placeholder="Sổ xuống để tick chọn bộ phận"
+                        treeData={departments.map((dept) => ({
+                          value: String(dept.id),
+                          title: dept.name,
+                        }))}
+                        onChange={handleDepartmentCheckboxChange}
+                      />
                     </div>
 
                     <Form.Item name="workflow_steps" hidden rules={[{ required: true, message: 'Vui lòng xây dựng quy trình sản xuất' }]}>
@@ -550,6 +714,35 @@ export default function CreateOrderModal({ visible, onClose, customerId }: Creat
               }
             ]} 
           />
+
+          <Modal
+            title={`Thiết lập bước ${editingStepIndex !== null ? editingStepIndex + 1 : ''}`}
+            open={stepSetupVisible}
+            onCancel={() => {
+              setStepSetupVisible(false);
+              setEditingStepIndex(null);
+            }}
+            onOk={submitStepSetup}
+            okText="Lưu thiết lập"
+            cancelText="Hủy"
+            destroyOnHidden
+          >
+            <Form form={stepSetupForm} layout="vertical">
+              <Form.Item
+                name="duration"
+                label="Thời gian dự kiến (phút)"
+                rules={[{ required: true, message: 'Nhập thời gian dự kiến' }]}
+              >
+                <InputNumber min={1} style={{ width: '100%' }} placeholder="Ví dụ: 60" />
+              </Form.Item>
+              <Form.Item name="material_name" label="Nguyên liệu chính">
+                <Input placeholder="Ví dụ: Giấy C300, Mực offset..." />
+              </Form.Item>
+              <Form.Item name="material_requested_qty" label="Số lượng nguyên liệu">
+                <InputNumber min={0} style={{ width: '100%' }} placeholder="Ví dụ: 500" />
+              </Form.Item>
+            </Form>
+          </Modal>
         </Form>
       </Spin>
     </Modal>
