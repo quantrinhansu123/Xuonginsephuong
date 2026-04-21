@@ -3,6 +3,15 @@
 -- 1. Add permissions column to departments table
 ALTER TABLE departments ADD COLUMN IF NOT EXISTS permissions TEXT[] DEFAULT ARRAY['tasks'];
 
+-- 1.1 Add material allocation snapshot on orders
+-- Lưu danh sách vật tư đã cấp phát từ kho theo từng LSX
+-- Ví dụ:
+-- [
+--   { "material_id": 12, "name": "Giấy C300", "unit": "Tờ", "quantity": 1500 }
+-- ]
+ALTER TABLE production_orders
+ADD COLUMN IF NOT EXISTS material_allocations JSONB DEFAULT '[]'::jsonb;
+
 -- 2. Add workflow_templates table for configurable workflows
 CREATE TABLE IF NOT EXISTS workflow_templates (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -76,6 +85,37 @@ ON CONFLICT (code) DO NOTHING;
 
 -- 7. Add valid_first_step column to departments
 ALTER TABLE departments ADD COLUMN IF NOT EXISTS is_entry_point BOOLEAN DEFAULT false;
+
+-- 8. Add display step label for workflow ordering
+ALTER TABLE departments ADD COLUMN IF NOT EXISTS step_name TEXT;
+
+-- 9. RLS policies for workflow_templates (for app client access)
+ALTER TABLE workflow_templates ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS workflow_templates_select_all ON workflow_templates;
+CREATE POLICY workflow_templates_select_all
+  ON workflow_templates
+  FOR SELECT
+  USING (true);
+
+DROP POLICY IF EXISTS workflow_templates_insert_all ON workflow_templates;
+CREATE POLICY workflow_templates_insert_all
+  ON workflow_templates
+  FOR INSERT
+  WITH CHECK (true);
+
+DROP POLICY IF EXISTS workflow_templates_update_all ON workflow_templates;
+CREATE POLICY workflow_templates_update_all
+  ON workflow_templates
+  FOR UPDATE
+  USING (true)
+  WITH CHECK (true);
+
+DROP POLICY IF EXISTS workflow_templates_delete_all ON workflow_templates;
+CREATE POLICY workflow_templates_delete_all
+  ON workflow_templates
+  FOR DELETE
+  USING (true);
 
 -- Mark entry point departments
 UPDATE departments SET is_entry_point = true WHERE code IN ('FLG', 'FL1', 'OFFSET');

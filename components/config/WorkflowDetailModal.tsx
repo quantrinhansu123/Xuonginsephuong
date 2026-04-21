@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Modal, Tabs, Form, Input, Select, Button, Table, 
   Typography, Space, Row, Col, Tag, message, 
-  Divider, Card, Empty, Popconfirm, Switch, List, Badge, InputNumber
+  Divider, Card, Empty, Popconfirm, Switch, Badge, InputNumber
 } from 'antd';
 import { 
   SaveOutlined, 
@@ -31,6 +31,7 @@ interface WorkflowDetailModalProps {
 
 export default function WorkflowDetailModal({ visible, workflow, departments, onClose, onRefresh }: WorkflowDetailModalProps) {
   const [form] = Form.useForm();
+  const [messageApi, contextHolder] = message.useMessage();
   const [steps, setSteps] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -42,7 +43,11 @@ export default function WorkflowDetailModal({ visible, workflow, departments, on
         description: workflow.description,
         is_active: workflow.is_active !== false,
       });
-      setSteps(workflow.steps || []);
+      const mappedSteps = (workflow.department_sequence || []).map((deptId: number, idx: number) => ({
+        department_id: deptId,
+        sequence: idx + 1,
+      }));
+      setSteps(mappedSteps);
     } else if (visible) {
       form.resetFields();
       setSteps([]);
@@ -67,14 +72,21 @@ export default function WorkflowDetailModal({ visible, workflow, departments, on
   const onFinish = async (values: any) => {
     setSaving(true);
     try {
+      const orderedDepartmentIds = steps
+        .map((s) => s.department_id)
+        .filter((id) => !!id);
+
+      if (orderedDepartmentIds.length === 0) {
+        messageApi.warning('Vui lòng thêm ít nhất 1 bước');
+        setSaving(false);
+        return;
+      }
+
       const workflowData = {
         name: values.name,
         description: values.description,
         is_active: values.is_active,
-        steps: steps.map((s, i) => ({
-          department_id: s.department_id,
-          sequence: i + 1,
-        })),
+        department_sequence: orderedDepartmentIds,
       };
 
       if (workflow) {
@@ -83,19 +95,23 @@ export default function WorkflowDetailModal({ visible, workflow, departments, on
           .update(workflowData)
           .eq('id', workflow.id);
         if (error) throw error;
-        message.success('Đã cập nhật quy trình');
+        messageApi.success('Đã cập nhật quy trình');
       } else {
         const { error } = await supabase
           .from('workflow_templates')
           .insert([workflowData]);
         if (error) throw error;
-        message.success('Đã thêm quy trình mới');
+        messageApi.success('Đã thêm quy trình mới');
       }
       onRefresh?.();
       onClose();
     } catch (err) {
-      console.error(err);
-      message.error('Lỗi khi lưu thông tin');
+      const e = err as any;
+      if (e?.code === '42501') {
+        messageApi.error('Bạn chưa có quyền lưu quy trình (RLS). Vui lòng cấp quyền INSERT/UPDATE cho bảng workflow_templates.');
+      } else {
+        messageApi.error('Lỗi khi lưu thông tin');
+      }
     } finally {
       setSaving(false);
     }
@@ -109,11 +125,11 @@ export default function WorkflowDetailModal({ visible, workflow, departments, on
         .delete()
         .eq('id', workflow.id);
       if (error) throw error;
-      message.success('Đã xóa quy trình');
+      messageApi.success('Đã xóa quy trình');
       onRefresh?.();
       onClose();
     } catch (err) {
-      message.error('Lỗi khi xóa quy trình');
+      messageApi.error('Lỗi khi xóa quy trình');
     } finally {
       setDeleting(false);
     }
@@ -170,7 +186,6 @@ export default function WorkflowDetailModal({ visible, workflow, departments, on
     {
       key: '2',
       label: <span><ApartmentOutlined /> Các bước ({steps.length})</span>,
-      disabled: !workflow && steps.length === 0,
       children: (
         <div className="p-4">
           <div className="flex justify-between items-center mb-4">
@@ -181,10 +196,9 @@ export default function WorkflowDetailModal({ visible, workflow, departments, on
           {steps.length === 0 ? (
             <Empty description="Chưa có bước nào. Nhấn 'Thêm bước' để bắt đầu." />
           ) : (
-            <List
-              dataSource={steps}
-              renderItem={(step, index) => (
-                <List.Item className="bg-gray-50 mb-2 p-3 rounded-lg">
+            <div className="space-y-2">
+              {steps.map((step, index) => (
+                <div key={`${step.department_id || 'step'}-${index}`} className="bg-gray-50 p-3 rounded-lg">
                   <div className="flex items-center w-full gap-4">
                     <div className="flex items-center justify-center w-8 h-8 bg-blue-600 text-white rounded-full font-bold">
                       {index + 1}
@@ -201,9 +215,9 @@ export default function WorkflowDetailModal({ visible, workflow, departments, on
                     </Select>
                     <Button type="text" danger icon={<DeleteOutlined />} onClick={() => removeStep(index)} />
                   </div>
-                </List.Item>
-              )}
-            />
+                </div>
+              ))}
+            </div>
           )}
           
           {steps.length > 0 && (
@@ -220,7 +234,9 @@ export default function WorkflowDetailModal({ visible, workflow, departments, on
   ];
 
   return (
-    <Modal
+    <>
+      {contextHolder}
+      <Modal
       title={
         <div className="flex items-center gap-3">
           <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl"><ApartmentOutlined /></div>
@@ -236,10 +252,11 @@ export default function WorkflowDetailModal({ visible, workflow, departments, on
       width={800}
       centered
       className="premium-modal no-padding-body"
-    >
-      <div className="p-0">
-        <Tabs defaultActiveKey="1" items={tabItems} destroyOnHidden centered className="premium-tabs-layout" />
-      </div>
-    </Modal>
+      >
+        <div className="p-0">
+          <Tabs defaultActiveKey="1" items={tabItems} destroyOnHidden centered className="premium-tabs-layout" />
+        </div>
+      </Modal>
+    </>
   );
 }

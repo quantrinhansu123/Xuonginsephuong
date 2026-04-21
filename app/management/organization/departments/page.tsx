@@ -1,39 +1,68 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Space, Card, Typography, message, Tag, Switch, Popconfirm, Badge } from 'antd';
-import { PlusOutlined, EditOutlined, AppstoreOutlined, ReloadOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Table, Button, Space, Card, Typography, message, Tag, Popconfirm } from 'antd';
+import { PlusOutlined, EditOutlined, ReloadOutlined, DeleteOutlined } from '@ant-design/icons';
 import { supabase } from '@/lib/supabase';
 import { clearCache } from '@/lib/auth';
 import DepartmentDetailModal from '@/components/organization/DepartmentDetailModal';
 
 const { Title, Text } = Typography;
 
-const AVAILABLE_PERMISSIONS = [
-  { value: 'tasks', label: 'Nhiệm vụ' },
-  { value: 'warehouse', label: 'Kho' },
-  { value: 'profile', label: 'Hồ sơ' },
-];
+const STEP_TAG_COLORS = ['geekblue', 'purple', 'cyan', 'green', 'gold', 'magenta'];
 
 export default function DepartmentsPage() {
+  const [messageApi, contextHolder] = message.useMessage();
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [currentDept, setCurrentDept] = useState<any>(null);
+  const [ownersByDeptId, setOwnersByDeptId] = useState<Record<number, any>>({});
 
   const fetchDepartments = async () => {
     setLoading(true);
     try {
-      const { data: depts, error } = await supabase
-        .from('departments')
-        .select('*')
-        .order('id', { ascending: true });
-      
+      const [{ data: depts, error }, { data: users, error: usersError }] = await Promise.all([
+        supabase
+          .from('departments')
+          .select('*')
+          .order('id', { ascending: true }),
+        supabase
+          .from('users')
+          .select('id, full_name, username, department_id, roles:role_id (name)')
+          .not('department_id', 'is', null)
+      ]);
+
       if (error) throw error;
+      if (usersError) throw usersError;
+
+      const usersByDept = (users || []).reduce((acc: Record<number, any[]>, user: any) => {
+        if (!acc[user.department_id]) {
+          acc[user.department_id] = [];
+        }
+        acc[user.department_id].push(user);
+        return acc;
+      }, {});
+
+      const resolvedOwners = Object.entries(usersByDept).reduce((acc: Record<number, any>, [deptId, deptUsers]) => {
+        const sortedUsers = [...(deptUsers as any[])].sort((a, b) => {
+          const roleA = (a.roles?.name || '').toLowerCase();
+          const roleB = (b.roles?.name || '').toLowerCase();
+          const priority = (role: string) =>
+            (role.includes('quản lý') || role.includes('giam doc') || role.includes('giám đốc') || role.includes('điều phối') || role.includes('truong') || role.includes('trưởng')) ? 0 : 1;
+          const byRolePriority = priority(roleA) - priority(roleB);
+          if (byRolePriority !== 0) return byRolePriority;
+          return (a.full_name || a.username || '').localeCompare(b.full_name || b.username || '');
+        });
+        acc[Number(deptId)] = sortedUsers[0];
+        return acc;
+      }, {});
+
+      setOwnersByDeptId(resolvedOwners);
       setData(depts || []);
     } catch (err) {
       console.error(err);
-      message.error('Không thể tải danh sách bộ phận');
+      messageApi.error('Không thể tải danh sách bộ phận');
     } finally {
       setLoading(false);
     }
@@ -56,11 +85,14 @@ export default function DepartmentsPage() {
         .eq('id', id);
       if (error) throw error;
       clearCache();
-      message.success('Đã xóa bộ phận');
+      messageApi.success('Đã xóa bộ phận');
       fetchDepartments();
-    } catch (err) {
-      console.error(err);
-      message.error('Lỗi khi xóa bộ phận');
+    } catch (err: any) {
+      if (err?.code === '23503') {
+        messageApi.warning('Không thể xóa vì bộ phận vẫn đang được tham chiếu (máy móc / dữ liệu liên quan).');
+        return;
+      }
+      messageApi.error('Lỗi khi xóa bộ phận');
     }
   };
 
@@ -87,31 +119,34 @@ export default function DepartmentsPage() {
       render: (text: string) => <Text strong>{text}</Text>,
     },
     {
-      title: 'Đầu vào',
-      dataIndex: 'is_entry_point',
-      key: 'is_entry_point',
-      onCell: () => ({ 'data-label': 'Loại' } as any),
-      render: (v: boolean) => v ? <Tag color="green" className="rounded-lg border-none font-bold px-3 py-0.5 uppercase text-[10px]">TIẾP NHẬN LSX</Tag> : <Tag className="rounded-lg border-none font-bold px-3 py-0.5 uppercase text-[10px]">NỘI BỘ</Tag>,
+      title: 'Người phụ trách',
+      key: 'owner',
+      onCell: () => ({ 'data-label': 'Người phụ trách' } as any),
+      render: (_: any, record: any) => {
+        const owner = ownersByDeptId[record.id];
+        if (!owner) return <Text type="secondary">Chưa phân công</Text>;
+        return (
+          <div className="flex flex-col leading-tight">
+            <Text strong>{owner.full_name || owner.username}</Text>
+            <Text className="text-[11px] text-slate-400 uppercase">{owner.roles?.name || 'Nhân sự'}</Text>
+          </div>
+        );
+      },
     },
     {
-      title: 'Quyền hạn',
-      dataIndex: 'permissions',
-      key: 'permissions',
-      onCell: () => ({ 'data-label': 'Quyền hạn' } as any),
-      render: (perms: string[]) => (
-        <Space size={2} wrap>
-          {perms?.length > 0 ? perms.map(p => {
-            const perm = AVAILABLE_PERMISSIONS.find(ap => ap.value === p);
-            return <Tag key={p} className="rounded-md border-slate-100 text-[11px] px-2">{perm?.label || p}</Tag>;
-          }) : <Text className="text-slate-300 italic text-[11px]">Không có quyền</Text>}
-        </Space>
-      ),
-    },
-    {
-      title: 'Trạng thái',
-      key: 'status',
-      onCell: () => ({ 'data-label': 'Trạng thái' } as any),
-      render: () => <Badge status="processing" text={<Text className="text-[10px] font-bold text-blue-500 uppercase">ĐANG VẬN HÀNH</Text>} />,
+      title: 'Bước',
+      dataIndex: 'step_name',
+      key: 'step_name',
+      onCell: () => ({ 'data-label': 'Bước' } as any),
+      render: (stepName: string, record: any) => {
+        if (!stepName) return <Text type="secondary">---</Text>;
+        const colorIndex = ((record.id || 1) - 1) % STEP_TAG_COLORS.length;
+        return (
+          <Tag color={STEP_TAG_COLORS[colorIndex]} className="rounded-lg border-none font-bold px-3 py-0.5">
+            {stepName}
+          </Tag>
+        );
+      },
     },
     {
       title: 'Thao tác',
@@ -131,48 +166,51 @@ export default function DepartmentsPage() {
   ];
 
   return (
-    <div className="space-y-8 max-w-[1600px] mx-auto animate-in">
-      <div className="flex justify-between items-end">
-        <div>
-          <Title level={2} className="m-0 font-black tracking-tight text-slate-900">
-            MASTER <span className="text-indigo-600">DEPARTMENTS</span>
-          </Title>
-          <div className="flex items-center gap-2 mt-2">
-            <div className="h-1 w-8 bg-indigo-600 rounded-full" />
-            <Text className="premium-label text-slate-400">Cấu hình hệ thống bộ phận • Phân quyền & Luồng vận hành</Text>
+    <>
+      {contextHolder}
+      <div className="space-y-8 max-w-[1600px] mx-auto animate-in">
+        <div className="flex justify-between items-end">
+          <div>
+            <Title level={2} className="m-0 font-black tracking-tight text-slate-900">
+              MASTER <span className="text-indigo-600">DEPARTMENTS</span>
+            </Title>
+            <div className="flex items-center gap-2 mt-2">
+              <div className="h-1 w-8 bg-indigo-600 rounded-full" />
+              <Text className="premium-label text-slate-400">Cấu hình hệ thống bộ phận • Phân quyền & Luồng vận hành</Text>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button icon={<ReloadOutlined />} onClick={fetchDepartments} className="h-12 w-12 rounded-2xl border-slate-200 flex items-center justify-center text-xl" />
+            <Button 
+              type="primary" 
+              icon={<PlusOutlined />} 
+              onClick={() => handleAddEdit()}
+              className="h-12 px-8 rounded-2xl font-bold bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200 shadow-lg border-none"
+            >
+              THÊM BỘ PHẬN
+            </Button>
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <Button icon={<ReloadOutlined />} onClick={fetchDepartments} className="h-12 w-12 rounded-2xl border-slate-200 flex items-center justify-center text-xl" />
-          <Button 
-            type="primary" 
-            icon={<PlusOutlined />} 
-            onClick={() => handleAddEdit()}
-            className="h-12 px-8 rounded-2xl font-bold bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200 shadow-lg border-none"
-          >
-            THÊM BỘ PHẬN
-          </Button>
-        </div>
-      </div>
 
-      <div className="premium-shadow rounded-[32px] overflow-hidden bg-white border border-slate-100">
-        <Table 
-          
-          columns={columns} 
-          dataSource={data} 
-          rowKey="id" 
-          loading={loading} 
-          className="designer-table"
-          pagination={false}
+        <div className="premium-shadow rounded-[32px] overflow-hidden bg-white border border-slate-100">
+          <Table 
+            
+            columns={columns} 
+            dataSource={data} 
+            rowKey="id" 
+            loading={loading} 
+            className="designer-table"
+            pagination={false}
+          />
+        </div>
+
+        <DepartmentDetailModal
+          visible={modalVisible}
+          department={currentDept}
+          onClose={() => setModalVisible(false)}
+          onRefresh={() => { clearCache(); fetchDepartments(); }}
         />
       </div>
-
-      <DepartmentDetailModal
-        visible={modalVisible}
-        department={currentDept}
-        onClose={() => setModalVisible(false)}
-        onRefresh={() => { clearCache(); fetchDepartments(); }}
-      />
-    </div>
+    </>
   );
 }

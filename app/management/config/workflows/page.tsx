@@ -18,6 +18,7 @@ import WorkflowDetailModal from '@/components/config/WorkflowDetailModal';
 const { Title, Text } = Typography;
 
 export default function WorkflowsPage() {
+  const [messageApi, contextHolder] = message.useMessage();
   const [data, setData] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -41,7 +42,7 @@ export default function WorkflowsPage() {
       if (deptError) throw deptError;
       setDepartments(deptData || []);
     } catch (err) {
-      message.error('Lỗi khi tải dữ liệu');
+      messageApi.error('Lỗi khi tải dữ liệu');
     } finally {
       setLoading(false);
     }
@@ -64,10 +65,14 @@ export default function WorkflowsPage() {
         .eq('id', id);
       if (error) throw error;
       clearCache();
-      message.success('Đã xóa quy trình');
+      messageApi.success('Đã xóa quy trình');
       fetchData();
-    } catch (err) {
-      message.error('Lỗi khi xóa quy trình');
+    } catch (err: any) {
+      if (err?.code === '42501') {
+        messageApi.error('Bạn chưa có quyền xóa workflow (RLS).');
+        return;
+      }
+      messageApi.error('Lỗi khi xóa quy trình');
     }
   };
 
@@ -79,10 +84,14 @@ export default function WorkflowsPage() {
         .eq('id', id);
       if (error) throw error;
       clearCache();
-      message.success(`Đã ${isActive ? 'kích hoạt' : 'vô hiệu hóa'} quy trình`);
+      messageApi.success(`Đã ${isActive ? 'kích hoạt' : 'vô hiệu hóa'} quy trình`);
       fetchData();
-    } catch (err) {
-      message.error('Lỗi khi cập nhật');
+    } catch (err: any) {
+      if (err?.code === '42501') {
+        messageApi.error('Bạn chưa có quyền cập nhật workflow (RLS).');
+        return;
+      }
+      messageApi.error('Lỗi khi cập nhật');
     }
   };
 
@@ -108,10 +117,10 @@ export default function WorkflowsPage() {
       title: 'Chuỗi bộ phận',
       dataIndex: 'department_sequence',
       key: 'sequence',
-      render: (sequence: number[]) => (
+      render: (sequence: number[], record: any) => (
         <div className="flex flex-wrap gap-1">
           {sequence?.map((deptId, idx) => (
-            <span key={deptId}>
+            <span key={`${record.id}-${deptId}-${idx}`}>
               <Tag color="blue">{getDeptName(deptId)}</Tag>
               {idx < sequence.length - 1 && <span className="text-gray-400">→</span>}
             </span>
@@ -135,12 +144,12 @@ export default function WorkflowsPage() {
     {
       title: 'Thao tác',
       key: 'action',
-      width: 80,
+      width: 170,
       render: (_: any, record: any) => (
         <Space>
           <Button type="text" icon={<EditOutlined />} onClick={() => handleAddEdit(record)} />
           <Popconfirm title="Xóa quy trình này?" onConfirm={() => handleDelete(record.id)} okText="Xóa" cancelText="Hủy">
-            <Button type="text" danger icon={<DeleteOutlined />} />
+            <Button danger icon={<DeleteOutlined />}>Xóa</Button>
           </Popconfirm>
         </Space>
       ),
@@ -148,7 +157,9 @@ export default function WorkflowsPage() {
   ];
 
   return (
-    <div className="space-y-8 max-w-[1600px] mx-auto animate-in">
+    <>
+      {contextHolder}
+      <div className="space-y-8 max-w-[1600px] mx-auto animate-in">
       <div className="flex justify-between items-end">
         <div>
           <Title level={2} className="m-0 font-black tracking-tight text-slate-900">
@@ -190,6 +201,7 @@ export default function WorkflowsPage() {
         onClose={() => setModalVisible(false)}
         onRefresh={() => { clearCache(); fetchData(); }}
       />
-    </div>
+      </div>
+    </>
   );
 }

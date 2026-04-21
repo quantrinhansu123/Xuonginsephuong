@@ -11,6 +11,7 @@ const getModuleFromPath = (pathname: string): string => {
   if (pathname.includes('/dashboard')) return 'dashboard';
   if (pathname.includes('/crm')) return 'crm';
   if (pathname.includes('/orders')) return 'orders';
+  if (pathname.includes('/tientrinh')) return 'orders';
   if (pathname.includes('/organization')) return 'organization';
   if (pathname.includes('/config')) return 'config';
   if (pathname.includes('/profile')) return 'profile';
@@ -64,7 +65,7 @@ export default function ManagementLayout({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div suppressHydrationWarning className="flex items-center justify-center min-h-screen">
         <Spin size="large" description="Đang kiểm tra quyền truy cập..." />
       </div>
     );
@@ -72,7 +73,7 @@ export default function ManagementLayout({
 
   if (accessDenied) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div suppressHydrationWarning className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center p-8 bg-white rounded-xl shadow-lg max-w-md">
           <div className="text-6xl mb-4">🚫</div>
           <h2 className="text-xl font-bold text-red-600 mb-2">Không có quyền truy cập</h2>

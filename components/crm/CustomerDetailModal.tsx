@@ -400,7 +400,7 @@ export default function CustomerDetailModal({ visible, customer, onClose, onRefr
             </Button>
           </div>
 
-          <Divider orientation={"left" as any} plain>Lịch sử giao dịch & Thanh toán</Divider>
+          <Divider titlePlacement="left" plain>Lịch sử giao dịch & Thanh toán</Divider>
           <Table 
             columns={[
               { 

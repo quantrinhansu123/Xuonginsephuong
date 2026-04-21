@@ -2,9 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
-  Modal, Tabs, Form, Input, Select, Button, Table, 
+  Modal, Tabs, Form, Input, Select, Button, Table, AutoComplete,
   Typography, Space, Row, Col, Tag, message, 
-  Divider, Card, Empty, Popconfirm, Switch, Descriptions, Avatar, Statistic
+  Divider, Card, Empty, Popconfirm, Avatar, Statistic
 } from 'antd';
 import { 
   SaveOutlined, 
@@ -18,8 +18,8 @@ import { supabase } from '@/lib/supabase';
 import dayjs from 'dayjs';
 
 const { Text, Title } = Typography;
-const { Option } = Select;
 const { TextArea } = Input;
+const STEP_OPTIONS = Array.from({ length: 10 }, (_, i) => ({ value: `Bước ${i + 1}` }));
 
 interface DepartmentDetailModalProps {
   visible: boolean;
@@ -30,30 +30,37 @@ interface DepartmentDetailModalProps {
 
 export default function DepartmentDetailModal({ visible, department, onClose, onRefresh }: DepartmentDetailModalProps) {
   const [form] = Form.useForm();
+  const [staffForm] = Form.useForm();
+  const [messageApi, contextHolder] = message.useMessage();
   const [staff, setStaff] = useState<any[]>([]);
   const [machines, setMachines] = useState<any[]>([]);
+  const [assignableUsers, setAssignableUsers] = useState<any[]>([]);
   const [loadingStaff, setLoadingStaff] = useState(false);
   const [loadingMachines, setLoadingMachines] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [addStaffVisible, setAddStaffVisible] = useState(false);
+  const [savingStaff, setSavingStaff] = useState(false);
 
   useEffect(() => {
     if (visible && department) {
       form.setFieldsValue({
         name: department.name,
         code: department.code,
+        step_name: department.step_name,
         description: department.description,
-        is_entry_point: department.is_entry_point || false,
-        permissions: department.permissions || [],
       });
       fetchStaff();
       fetchMachines();
+      fetchAssignableUsers();
     } else if (visible) {
       form.resetFields();
+      staffForm.resetFields();
       setStaff([]);
       setMachines([]);
+      setAssignableUsers([]);
     }
-  }, [visible, department, form]);
+  }, [visible, department, form, staffForm]);
 
   const fetchStaff = async () => {
     if (!department) return;
@@ -93,28 +100,85 @@ export default function DepartmentDetailModal({ visible, department, onClose, on
     }
   };
 
+  const fetchAssignableUsers = async () => {
+    if (!department) return;
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, full_name, username, department_id, roles:role_id (name)')
+        .order('full_name');
+      if (error) throw error;
+
+      const options = (data || []).filter((u: any) => u.department_id !== department.id);
+      setAssignableUsers(options);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleAddStaff = async (values: any) => {
+    if (!department?.id) return;
+    setSavingStaff(true);
+    try {
+      const { error } = await supabase
+        .from('users')
+        .update({ department_id: department.id })
+        .eq('id', values.user_id);
+      if (error) throw error;
+
+      messageApi.success('Đã thêm nhân sự cho bộ phận');
+      setAddStaffVisible(false);
+      staffForm.resetFields();
+      fetchStaff();
+      fetchAssignableUsers();
+      onRefresh?.();
+    } catch (err) {
+      console.error(err);
+      messageApi.error('Lỗi khi thêm nhân sự');
+    } finally {
+      setSavingStaff(false);
+    }
+  };
+
   const onFinish = async (values: any) => {
     setSaving(true);
     try {
-      if (department) {
-        const { error } = await supabase
-          .from('departments')
-          .update(values)
-          .eq('id', department.id);
-        if (error) throw error;
-        message.success('Đã cập nhật bộ phận');
-      } else {
-        const { error } = await supabase
-          .from('departments')
-          .insert([values]);
-        if (error) throw error;
-        message.success('Đã thêm bộ phận mới');
+      const basePayload = {
+        code: values.code,
+        name: values.name,
+        step_name: values.step_name?.trim() || null,
+      };
+
+      const payload: Record<string, any> = { ...basePayload };
+      const missingColumnRegex = /Could not find the '([^']+)' column/i;
+
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        const { error } = department
+          ? await supabase.from('departments').update(payload).eq('id', department.id)
+          : await supabase.from('departments').insert([payload]);
+
+        if (!error) {
+          if (department) {
+            messageApi.success('Đã cập nhật bộ phận');
+          } else {
+            messageApi.success('Đã thêm bộ phận mới');
+          }
+          onRefresh?.();
+          onClose();
+          return;
+        }
+
+        const missingColumn = error.message?.match(missingColumnRegex)?.[1];
+        if (!missingColumn || !(missingColumn in payload)) {
+          throw error;
+        }
+
+        // DB có thể chưa migrate đủ cột, tự bỏ cột thiếu rồi retry.
+        delete payload[missingColumn];
       }
-      onRefresh?.();
-      onClose();
     } catch (err) {
       console.error(err);
-      message.error('Lỗi khi lưu thông tin');
+      messageApi.error('Lỗi khi lưu thông tin');
     } finally {
       setSaving(false);
     }
@@ -159,7 +223,7 @@ export default function DepartmentDetailModal({ visible, department, onClose, on
         if (machineLen > 0) issues.push(`${machineLen} máy móc`);
         if (taskLen > 0) issues.push(`${taskLen} task`);
         if (workflowLen > 0) issues.push(`${workflowLen} quy trình mẫu`);
-        message.error(msg + issues.join(', '));
+        messageApi.error(msg + issues.join(', '));
         setDeleting(false);
         return;
       }
@@ -169,12 +233,12 @@ export default function DepartmentDetailModal({ visible, department, onClose, on
         .delete()
         .eq('id', department.id);
       if (error) throw error;
-      message.success('Đã xóa bộ phận');
+      messageApi.success('Đã xóa bộ phận');
       onRefresh?.();
       onClose();
     } catch (err) {
       console.error(err);
-      message.error('Lỗi khi xóa bộ phận');
+      messageApi.error('Lỗi khi xóa bộ phận');
     } finally {
       setDeleting(false);
     }
@@ -201,7 +265,7 @@ export default function DepartmentDetailModal({ visible, department, onClose, on
       title: 'Trạng thái', 
       dataIndex: 'is_active', 
       key: 'status',
-      render: (v: boolean) => <Tag color={v ? 'green' : 'red'}>{v ? 'Hoạt động' : 'Nghỉ'}</Tag>
+      render: (v: boolean) => <Tag color={v !== false ? 'green' : 'red'}>{v !== false ? 'Hoạt động' : 'Nghỉ'}</Tag>
     },
   ];
 
@@ -231,15 +295,6 @@ export default function DepartmentDetailModal({ visible, department, onClose, on
     },
   ];
 
-  const permissionOptions = [
-    { label: 'Xem đơn hàng', value: 'view_orders' },
-    { label: 'Tạo đơn hàng', value: 'create_orders' },
-    { label: 'Xuất kho', value: 'export_inventory' },
-    { label: 'Nhập kho', value: 'import_inventory' },
-    { label: 'Quản lý nhân sự', value: 'manage_staff' },
-    { label: 'Báo cáo', value: 'view_reports' },
-  ];
-
   const tabItems = [
     {
       key: '1',
@@ -259,20 +314,19 @@ export default function DepartmentDetailModal({ visible, department, onClose, on
                 </Form.Item>
               </Col>
               <Col span={24}>
-                <Form.Item name="description" label="Mô tả">
-                  <TextArea rows={2} placeholder="Mô tả chức năng của bộ phận" />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item name="is_entry_point" label="Là điểm bắt đầu quy trình" valuePropName="checked">
-                  <Switch checkedChildren="Có" unCheckedChildren="Không" />
+                <Form.Item name="step_name" label="Bước">
+                  <AutoComplete
+                    options={STEP_OPTIONS}
+                    placeholder="Gõ mới hoặc chọn nhanh: Bước 1, Bước 2, Bước 3..."
+                    filterOption={(inputValue, option) =>
+                      (option?.value ?? '').toUpperCase().includes(inputValue.toUpperCase())
+                    }
+                  />
                 </Form.Item>
               </Col>
               <Col span={24}>
-                <Form.Item name="permissions" label="Quyền hạn">
-                  <Select mode="multiple" placeholder="Chọn quyền cho bộ phận">
-                    {permissionOptions.map(p => <Option key={p.value} value={p.value}>{p.label}</Option>)}
-                  </Select>
+                <Form.Item name="description" label="Mô tả">
+                  <TextArea rows={2} placeholder="Mô tả chức năng của bộ phận" />
                 </Form.Item>
               </Col>
             </Row>
@@ -307,6 +361,11 @@ export default function DepartmentDetailModal({ visible, department, onClose, on
       disabled: !department,
       children: (
         <div className="p-4">
+          <div className="flex justify-end mb-3">
+            <Button type="primary" onClick={() => setAddStaffVisible(true)}>
+              Thêm nhân sự
+            </Button>
+          </div>
           <Row gutter={16} className="mb-4">
             <Col span={8}>
               <Card size="small" className="bg-blue-50 border-blue-100 text-center">
@@ -369,14 +428,50 @@ export default function DepartmentDetailModal({ visible, department, onClose, on
   ];
 
   return (
-    <Modal
-      title={department ? `Bộ phận: ${department.name}` : 'Thêm Bộ phận mới'}
-      open={visible}
-      onCancel={onClose}
-      footer={null}
-      width={900}
-    >
-      <Tabs defaultActiveKey="1" items={tabItems} destroyOnHidden />
-    </Modal>
+    <>
+      {contextHolder}
+      <Modal
+        title={department ? `Bộ phận: ${department.name}` : 'Thêm Bộ phận mới'}
+        open={visible}
+        onCancel={onClose}
+        footer={null}
+        width={900}
+      >
+        <Tabs defaultActiveKey="1" items={tabItems} destroyOnHidden />
+      </Modal>
+
+      <Modal
+        title={`Thêm nhân sự - ${department?.name || 'Bộ phận'}`}
+        open={addStaffVisible}
+        onCancel={() => {
+          setAddStaffVisible(false);
+          staffForm.resetFields();
+        }}
+        onOk={() => staffForm.submit()}
+        okText="Thêm"
+        cancelText="Hủy"
+        confirmLoading={savingStaff}
+      >
+        <Form
+          form={staffForm}
+          layout="vertical"
+          onFinish={handleAddStaff}
+        >
+          <Form.Item name="user_id" label="Họ và tên" rules={[{ required: true, message: 'Chọn nhân sự' }]}>
+            <Select
+              showSearch
+              placeholder="Chọn nhân sự từ danh sách"
+              optionFilterProp="label"
+              options={assignableUsers.map((user: any) => ({
+                value: user.id,
+                label: `${user.full_name || user.username} - ${user.roles?.name || 'Chưa có chức vụ'}`
+              }))}
+              notFoundContent="Không còn nhân sự để gán"
+            >
+            </Select>
+          </Form.Item>
+        </Form>
+      </Modal>
+    </>
   );
 }

@@ -30,7 +30,7 @@ import {
 import { supabase } from '@/lib/supabase';
 import dayjs from 'dayjs';
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -41,9 +41,24 @@ interface OrderDetailModalProps {
   onClose: () => void;
   onRefresh?: () => void;
   userRole?: string;
+  startInEditMode?: boolean;
 }
 
-export default function OrderDetailModal({ visible, order, onClose, onRefresh, userRole }: OrderDetailModalProps) {
+export default function OrderDetailModal({ visible, order, onClose, onRefresh, userRole, startInEditMode = false }: OrderDetailModalProps) {
+  type StepMaterialDraft = {
+    materialId: number | null;
+    name: string;
+    unit: string;
+    quantity: number | null;
+  };
+  type StepDraft = {
+    deptId: number;
+    deadline: string | null;
+    note: string;
+    materialStatus: 'waiting_material' | 'material_ready';
+    materials: StepMaterialDraft[];
+  };
+
   const [tasks, setTasks] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -55,9 +70,35 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
   const [editForm] = Form.useForm();
   const [customers, setCustomers] = useState<any[]>([]);
   const [departments, setDepartments] = useState<any[]>([]);
-  const [selectedSteps, setSelectedSteps] = useState<any[]>([]);
+  const [materials, setMaterials] = useState<any[]>([]);
+  const [selectedSteps, setSelectedSteps] = useState<StepDraft[]>([]);
   const [activeTabKey, setActiveTabKey] = useState('1');
   const [, forceUpdate] = useState({});
+  const [materialAllocations, setMaterialAllocations] = useState<any[]>([]);
+
+  const getEmptyMaterial = (): StepMaterialDraft => ({
+    materialId: null,
+    name: '',
+    unit: '',
+    quantity: null,
+  });
+
+  const applyEditFormValues = () => {
+    editForm.setFieldsValue({
+      title: order?.title,
+      customer_id: order?.customer_id,
+      specs: order?.specs,
+      deadline: order?.deadline ? dayjs(order.deadline).format('YYYY-MM-DDTHH:mm') : null,
+      financials: order?.financials,
+      quantity: order?.specs?.quantity,
+      unit_price: order?.financials?.unit_price,
+      vat: order?.financials?.vat,
+      paper_type: order?.specs?.paper_type,
+      size: order?.specs?.size,
+      sides: order?.specs?.sides,
+      unit: order?.specs?.unit
+    });
+  };
 
   // Auto-refresh thời gian phản hồi real-time mỗi 30 giây
   useEffect(() => {
@@ -77,8 +118,13 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
       fetchPayments();
       fetchCustomers();
       fetchDepartments();
-      setActiveTabKey('1'); // Reset to first tab when modal opens
-      setEditMode(false);
+      fetchMaterials();
+      fetchMaterialAllocations();
+      setActiveTabKey(startInEditMode ? '5' : '1');
+      setEditMode(startInEditMode);
+      if (startInEditMode) {
+        applyEditFormValues();
+      }
     }
   }, [visible, order]);
 
@@ -87,7 +133,17 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
       // Initialize workflow steps from existing tasks
       const steps = tasks.map(t => ({
         deptId: t.department_id,
-        deadline: t.ready_at ? dayjs(t.ready_at).add(t.estimated_duration_seconds || 3600, 'second').format('YYYY-MM-DDTHH:mm') : null
+        deadline: t.ready_at ? dayjs(t.ready_at).add(t.estimated_duration_seconds || 3600, 'second').format('YYYY-MM-DDTHH:mm') : null,
+        note: t?.processing_info?.assignment_note || '',
+        materialStatus: t?.processing_info?.material_status === 'material_ready' ? 'material_ready' : 'waiting_material',
+        materials: Array.isArray(t?.processing_info?.material_allocations) && t.processing_info.material_allocations.length > 0
+          ? t.processing_info.material_allocations.map((item: any) => ({
+              materialId: item?.material_id ?? null,
+              name: item?.name || '',
+              unit: item?.unit || '',
+              quantity: item?.quantity ?? null,
+            }))
+          : [getEmptyMaterial()],
       }));
       setSelectedSteps(steps);
       
@@ -135,13 +191,26 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
     }
   };
 
+  const fetchMaterials = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('materials')
+        .select('id, name, unit, stock_quantity')
+        .order('name', { ascending: true });
+      if (error) throw error;
+      setMaterials(data || []);
+    } catch (err) {
+      console.error('Error fetching materials:', err);
+    }
+  };
+
   const getDeptName = (deptId: number) => {
     const dept = departments.find(d => d.id === deptId);
     return dept?.name || `ID: ${deptId}`;
   };
 
   const handleAddStep = (deptId: number) => {
-    const newSteps = [...selectedSteps, { deptId, deadline: null }];
+    const newSteps = [...selectedSteps, { deptId, deadline: null, note: '', materialStatus: 'waiting_material', materials: [getEmptyMaterial()] } as StepDraft];
     setSelectedSteps(newSteps);
   };
 
@@ -153,6 +222,45 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
   const handleUpdateDeadline = (index: number, deadline: string | null) => {
     const newSteps = [...selectedSteps];
     newSteps[index] = { ...newSteps[index], deadline };
+    setSelectedSteps(newSteps);
+  };
+
+  const handleUpdateStepNote = (index: number, note: string) => {
+    const newSteps = [...selectedSteps];
+    newSteps[index] = { ...newSteps[index], note };
+    setSelectedSteps(newSteps);
+  };
+
+  const handleUpdateStepMaterialStatus = (index: number, materialStatus: 'waiting_material' | 'material_ready') => {
+    const newSteps = [...selectedSteps];
+    newSteps[index] = { ...newSteps[index], materialStatus };
+    setSelectedSteps(newSteps);
+  };
+
+  const handleAddStepMaterial = (index: number) => {
+    const newSteps = [...selectedSteps];
+    newSteps[index] = { ...newSteps[index], materials: [...(newSteps[index]?.materials || []), getEmptyMaterial()] };
+    setSelectedSteps(newSteps);
+  };
+
+  const handleRemoveStepMaterial = (stepIndex: number, materialIndex: number) => {
+    const newSteps = [...selectedSteps];
+    const nextMaterials = (newSteps[stepIndex]?.materials || []).filter((_: any, idx: number) => idx !== materialIndex);
+    newSteps[stepIndex] = {
+      ...newSteps[stepIndex],
+      materials: nextMaterials.length > 0 ? nextMaterials : [getEmptyMaterial()],
+    };
+    setSelectedSteps(newSteps);
+  };
+
+  const handleUpdateStepMaterial = (stepIndex: number, materialIndex: number, patch: Partial<StepMaterialDraft>) => {
+    const newSteps = [...selectedSteps];
+    newSteps[stepIndex] = {
+      ...newSteps[stepIndex],
+      materials: (newSteps[stepIndex]?.materials || []).map((item: StepMaterialDraft, idx: number) => (
+        idx === materialIndex ? { ...item, ...patch } : item
+      )),
+    };
     setSelectedSteps(newSteps);
   };
 
@@ -175,6 +283,7 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
           issue_log,
           material_shortage,
           estimated_duration_seconds,
+          processing_info,
           departments:department_id (name, code),
           users:assigned_to (full_name)
         `)
@@ -188,6 +297,26 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
       if (order.tasks) setTasks(order.tasks);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchMaterialAllocations = async () => {
+    if (!order?.id) return;
+    try {
+      const { data: orderData, error: orderError } = await supabase
+        .from('production_orders')
+        .select('material_allocations')
+        .eq('id', order.id)
+        .single();
+      if (orderError) throw orderError;
+
+      const allocations = Array.isArray(orderData?.material_allocations)
+        ? orderData.material_allocations
+        : [];
+      setMaterialAllocations(allocations);
+    } catch (err) {
+      console.error('Error fetching material allocations:', err);
+      setMaterialAllocations([]);
     }
   };
 
@@ -251,7 +380,7 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
       t.issue_log || ''
     ]);
 
-    doc.autoTable({
+    autoTable(doc, {
       head: [tableColumn],
       body: tableRows,
       startY: 90,
@@ -314,6 +443,19 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
     if (!tasks.length) return 0;
     const doneTasks = tasks.filter(t => t.status === 'done').length;
     return Math.round((doneTasks / tasks.length) * 100);
+  };
+
+  const getOrderStatusMeta = (status?: string) => {
+    const map: Record<string, { label: string; className: string }> = {
+      completed: { label: 'HOÀN TẤT', className: 'bg-emerald-100 text-emerald-700' },
+      done: { label: 'HOÀN TẤT', className: 'bg-emerald-100 text-emerald-700' },
+      in_progress: { label: 'IN_PROGRESS', className: 'bg-blue-100 text-blue-700' },
+      ready: { label: 'SẴN SÀNG', className: 'bg-cyan-100 text-cyan-700' },
+      pending: { label: 'CHỜ XỬ LÝ', className: 'bg-slate-100 text-slate-600' },
+      issue: { label: 'SỰ CỐ', className: 'bg-rose-100 text-rose-700' },
+      on_hold: { label: 'TẠM HOÃN', className: 'bg-orange-100 text-orange-700' },
+    };
+    return map[status || ''] || { label: (status || 'UNKNOWN').toUpperCase(), className: 'bg-slate-100 text-slate-700' };
   };
 
   const handleSaveOrder = async () => {
@@ -386,6 +528,18 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
             status: index === 0 ? 'ready' : 'pending',
             ready_at: readyAt,
             estimated_duration_seconds: estimatedDuration,
+            processing_info: {
+              assignment_note: step.note?.trim() || null,
+              material_status: step.materialStatus,
+              material_allocations: (step.materials || [])
+                .filter((item: StepMaterialDraft) => item.name?.trim() && item.quantity)
+                .map((item: StepMaterialDraft) => ({
+                  material_id: item.materialId,
+                  name: item.name.trim(),
+                  unit: item.unit || '',
+                  quantity: Number(item.quantity),
+                })),
+            },
           };
         });
 
@@ -409,48 +563,92 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
       key: '1',
       label: <span><InfoCircleOutlined /> Thông tin in ấn</span>,
       children: (
-        <div className="p-4">
+        <div className="p-4 bg-slate-50/60 rounded-2xl border border-slate-100">
           <Row gutter={[32, 24]}>
             <Col span={12}>
-              <Card size="small" title="Thông số kỹ thuật" className="h-full border-blue-100 shadow-sm ui-soft-surface">
+              <Card
+                size="small"
+                title={<span className="text-slate-800 font-bold">Thông số kỹ thuật</span>}
+                className="h-full rounded-2xl border-slate-200 shadow-sm"
+                styles={{ body: { paddingTop: 14 } }}
+              >
                 <Space orientation="vertical" className="w-full">
-                  <div className="flex justify-between border-b pb-2">
-                    <Text type="secondary">Nội dung:</Text>
-                    <Text strong>{order?.title}</Text>
+                  <div className="flex justify-between border-b border-slate-100 pb-2">
+                    <Text type="secondary" className="text-slate-500">Nội dung:</Text>
+                    <Text strong className="text-slate-800">{order?.title || '---'}</Text>
                   </div>
-                  <div className="flex justify-between border-b pb-2">
-                    <Text type="secondary">Số lượng:</Text>
-                    <Text strong>{order?.specs?.quantity?.toLocaleString()} {order?.specs?.unit}</Text>
+                  <div className="flex justify-between border-b border-slate-100 pb-2">
+                    <Text type="secondary" className="text-slate-500">Số lượng:</Text>
+                    <Text strong className="text-slate-800">{order?.specs?.quantity?.toLocaleString() || '---'} {order?.specs?.unit || ''}</Text>
                   </div>
-                  <div className="flex justify-between border-b pb-2">
-                    <Text type="secondary">Khổ giấy:</Text>
-                    <Text strong>{order?.specs?.size}</Text>
+                  <div className="flex justify-between border-b border-slate-100 pb-2">
+                    <Text type="secondary" className="text-slate-500">Khổ giấy:</Text>
+                    <Text strong className="text-slate-800">{order?.specs?.size || '---'}</Text>
                   </div>
                   <div className="flex justify-between">
-                    <Text type="secondary">Mặt in:</Text>
-                    <Text strong>{order?.specs?.sides} mặt</Text>
+                    <Text type="secondary" className="text-slate-500">Mặt in:</Text>
+                    <Text strong className="text-slate-800">{order?.specs?.sides ? `${order?.specs?.sides} mặt` : '---'}</Text>
                   </div>
                 </Space>
               </Card>
             </Col>
             <Col span={12}>
-              <Card size="small" title="Khách hàng & Hạn chót" className="h-full border-blue-100 shadow-sm ui-soft-surface">
+              <Card
+                size="small"
+                title={<span className="text-slate-800 font-bold">Khách hàng & Hạn chót</span>}
+                className="h-full rounded-2xl border-slate-200 shadow-sm"
+                styles={{ body: { paddingTop: 14 } }}
+              >
                 <Space orientation="vertical" className="w-full">
-                  <div className="flex justify-between border-b pb-2">
-                    <Text type="secondary">Khách hàng:</Text>
-                    <Text strong>{order?.customers?.name || '---'}</Text>
+                  <div className="flex justify-between border-b border-slate-100 pb-2">
+                    <Text type="secondary" className="text-slate-500">Khách hàng:</Text>
+                    <Text strong className="text-slate-800">{order?.customers?.name || '---'}</Text>
                   </div>
-                  <div className="flex justify-between border-b pb-2">
-                    <Text type="secondary">Số điện thoại:</Text>
-                    <Text strong>{order?.customers?.phone || '---'}</Text>
+                  <div className="flex justify-between border-b border-slate-100 pb-2">
+                    <Text type="secondary" className="text-slate-500">Số điện thoại:</Text>
+                    <Text strong className="text-slate-800">{order?.customers?.phone || '---'}</Text>
                   </div>
                   <div className="flex justify-between">
-                    <Text type="secondary">Ngày giao dự kiến:</Text>
-                    <Tag color="volcano" icon={<ClockCircleOutlined />}>
+                    <Text type="secondary" className="text-slate-500">Ngày giao dự kiến:</Text>
+                    <Tag color={order?.deadline ? 'blue' : 'volcano'} icon={<ClockCircleOutlined />}>
                       {order?.deadline ? dayjs(order.deadline).format('DD/MM/YYYY') : 'Chưa cập nhật'}
                     </Tag>
                   </div>
                 </Space>
+              </Card>
+            </Col>
+          </Row>
+
+          <Row gutter={[32, 24]} className="mt-1">
+            <Col span={24}>
+              <Card
+                size="small"
+                title={<span className="text-slate-800 font-bold">Cấp phát vật tư (từ kho)</span>}
+                className="rounded-2xl border-slate-200 shadow-sm"
+                styles={{ body: { paddingTop: 12 } }}
+              >
+                {materialAllocations.length > 0 ? (
+                  <div className="space-y-2">
+                    {materialAllocations.map((item: any, idx: number) => (
+                      <div key={`${item?.material_id || item?.name || 'material'}-${idx}`} className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3 py-2">
+                        <div className="flex items-center gap-2">
+                          <Tag className="m-0 border-none bg-indigo-100 text-indigo-700 font-bold rounded-lg">
+                            VT {idx + 1}
+                          </Tag>
+                          <Text strong className="text-slate-700">{item?.name || 'Vật tư chưa rõ tên'}</Text>
+                        </div>
+                        <Text strong className="text-slate-900">
+                          {(Number(item?.quantity || 0)).toLocaleString()} {item?.unit || ''}
+                        </Text>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <Empty
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    description="Chưa có dữ liệu cấp phát vật tư"
+                  />
+                )}
               </Card>
             </Col>
           </Row>
@@ -461,13 +659,18 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
       key: '2',
       label: <span><NodeIndexOutlined /> Theo dõi Tiến độ</span>,
       children: (
-        <div className="p-4">
-          <div className="mb-8 p-6 bg-blue-50 rounded-xl flex items-center justify-between border border-blue-100 shadow-inner">
+        <div className="p-3">
+          <div className="mb-5 p-4 bg-blue-50 rounded-xl flex items-center justify-between border border-blue-100 shadow-inner">
             <div className="flex-1 mr-8">
-              <Text strong className="block mb-2 text-lg">Tiến độ tổng quát: {calculateOverallProgress()}%</Text>
-              <Progress percent={calculateOverallProgress()} status="active" strokeColor="#1890ff" strokeWidth={12} />
+              <Text strong className="block mb-1 text-base">Tiến độ tổng quát: {calculateOverallProgress()}%</Text>
+              <Progress percent={calculateOverallProgress()} status="active" strokeColor="#1890ff" size="small" />
             </div>
-            <Statistic value={tasks.filter(t => t.status === 'done').length} suffix={`/ ${tasks.length}`} title="Tasks hoàn thành" valueStyle={{ color: '#1890ff', fontWeight: 'bold' }} />
+            <Statistic
+              value={tasks.filter(t => t.status === 'done').length}
+              suffix={`/ ${tasks.length}`}
+              title="Tasks hoàn thành"
+              styles={{ content: { color: '#1890ff', fontWeight: 'bold' } }}
+            />
           </div>
 
           <Steps
@@ -520,18 +723,18 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
                     </div>
                   </div>
                 ),
-                description: (
-                  <div className={`mt-4 mb-6 rounded-[28px] border transition-all duration-300 overflow-hidden ${
+                content: (
+                  <div className={`mt-3 mb-4 rounded-2xl border transition-all duration-300 overflow-hidden ${
                     task.status === 'in_progress' ? 'bg-white shadow-xl shadow-indigo-100 border-indigo-100 ring-2 ring-indigo-50' : 'bg-slate-50 border-slate-100 hover:border-slate-200'
                   }`}>
-                    <div className="p-5">
-                      <Row gutter={[24, 16]}>
+                    <div className="p-4">
+                      <Row gutter={[16, 12]}>
                         <Col span={10}>
-                          <div className="space-y-4">
+                          <div className="space-y-3">
                              <div>
-                                <Text className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-2">Người xác nhận</Text>
+                                <Text className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1.5">Người xác nhận</Text>
                                 <div className="flex items-center gap-2.5">
-                                   <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-black text-xs border-2 border-white shadow-sm overflow-hidden uppercase">
+                                   <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-black text-[11px] border-2 border-white shadow-sm overflow-hidden uppercase">
                                       {responderName.charAt(0)}
                                    </div>
                                    <div>
@@ -551,8 +754,8 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
                           </div>
                         </Col>
                         
-                        <Col span={14} className="border-l border-slate-100 pl-6">
-                           <div className="grid grid-cols-2 gap-4">
+                        <Col span={14} className="border-l border-slate-100 pl-4">
+                           <div className="grid grid-cols-2 gap-3">
                               <div className="space-y-3">
                                  <div>
                                     <Text className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Thời gian phản hồi</Text>
@@ -618,8 +821,8 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
                       </Row>
 
                       {(task.status === 'issue' || task.status === 'on_hold') && task.issue_log && (
-                        <div className="mt-4 p-4 bg-rose-50 rounded-2xl border border-rose-100 flex items-start gap-3">
-                           <div className="w-8 h-8 rounded-xl bg-white flex items-center justify-center text-rose-500 shadow-sm border border-rose-100">
+                        <div className="mt-3 p-3 bg-rose-50 rounded-xl border border-rose-100 flex items-start gap-2.5">
+                           <div className="w-7 h-7 rounded-lg bg-white flex items-center justify-center text-rose-500 shadow-sm border border-rose-100">
                               <WarningOutlined />
                            </div>
                            <div>
@@ -659,7 +862,7 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
                     title="Tổng phải thu" 
                     value={order?.financials?.total_with_vat || (order?.financials?.total * (1 + (order?.financials?.vat || 0)/100))} 
                     suffix="đ" 
-                    valueStyle={{ fontSize: 20, color: '#1890ff', fontWeight: 'bold' }}
+                    styles={{ content: { fontSize: 20, color: '#1890ff', fontWeight: 'bold' } }}
                   />
                 </div>
               </Card>
@@ -687,13 +890,18 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
                 />
                 <Divider dashed />
                 <div className="flex justify-between items-center px-4">
-                  <Statistic title="Đã thu" value={order?.financials?.received || 0} suffix="đ" valueStyle={{ color: '#52c41a', fontSize: 20 }} />
+                  <Statistic
+                    title="Đã thu"
+                    value={order?.financials?.received || 0}
+                    suffix="đ"
+                    styles={{ content: { color: '#52c41a', fontSize: 20 } }}
+                  />
                   {userRole !== 'Kế toán' && userRole !== 'Quản lý' && <Text type="secondary" className="text-[10px]">Tiền hàng đã chốt</Text>}
                   <Statistic 
                     title="Còn nợ" 
                     value={(order?.financials?.total_with_vat || (order?.financials?.total * (1 + (order?.financials?.vat || 0)/100))) - (order?.financials?.received || 0)} 
                     suffix="đ" 
-                    valueStyle={{ color: '#f5222d', fontSize: 20, fontWeight: 'bold' }}
+                    styles={{ content: { color: '#f5222d', fontSize: 20, fontWeight: 'bold' } }}
                   />
                 </div>
               </Card>
@@ -732,11 +940,12 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
       key: '5',
       label: <span><EditOutlined /> Chỉnh sửa</span>,
       children: (
-        <div className="p-4">
-          <Tabs 
-            defaultActiveKey="edit1" 
-            className="manual-step-tabs"
-            items={[
+        <Form form={editForm} layout="vertical">
+          <div className="p-4">
+            <Tabs 
+              defaultActiveKey="edit1" 
+              className="manual-step-tabs"
+              items={[
               {
                 key: 'edit1',
                 label: <span><InfoCircleOutlined /> 1. Thông số chung</span>,
@@ -837,10 +1046,10 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
                       </div>
 
                       {selectedSteps.length > 0 ? (
-                        <div className="flex flex-wrap items-center gap-y-3">
+                        <div className="flex flex-wrap items-start gap-y-3">
                           {selectedSteps.map((step, index) => (
-                            <div key={`${step.deptId}-${index}`} className="flex items-center">
-                              <div className="flex flex-col gap-1 items-center">
+                            <div key={`${step.deptId}-${index}`} className="flex items-start">
+                              <div className="flex flex-col gap-2 items-center">
                                 <Tag 
                                   closable 
                                   onClose={(e: React.MouseEvent) => { e.preventDefault(); handleRemoveStep(index); }}
@@ -862,6 +1071,68 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
                                     className="w-40 text-[10px] font-bold"
                                     placeholder="Chọn deadline"
                                   />
+                                </div>
+                                <Input.TextArea
+                                  rows={2}
+                                  value={step.note || ''}
+                                  onChange={(e) => handleUpdateStepNote(index, e.target.value)}
+                                  className="w-52"
+                                  placeholder="Ghi chú bước này..."
+                                />
+                                <Select
+                                  size="small"
+                                  value={step.materialStatus}
+                                  className="w-52"
+                                  onChange={(value) => handleUpdateStepMaterialStatus(index, value)}
+                                  options={[
+                                    { value: 'waiting_material', label: 'Chờ vật tư' },
+                                    { value: 'material_ready', label: 'Cấp đủ vật tư' },
+                                  ]}
+                                />
+                                <div className="w-52 space-y-1">
+                                  {(step.materials || []).map((material: StepMaterialDraft, materialIdx: number) => (
+                                    <div key={`${index}-mat-${materialIdx}`} className="flex items-center gap-1">
+                                      <Select
+                                        size="small"
+                                        showSearch
+                                        value={material.materialId}
+                                        placeholder="Vật tư"
+                                        optionFilterProp="label"
+                                        className="flex-1"
+                                        options={materials.map((m: any) => ({
+                                          value: m.id,
+                                          label: `${m.name} (Tồn: ${Number(m.stock_quantity || 0).toLocaleString()} ${m.unit || ''})`,
+                                        }))}
+                                        onChange={(value) => {
+                                          const selectedMaterial = materials.find((m: any) => m.id === value);
+                                          handleUpdateStepMaterial(index, materialIdx, {
+                                            materialId: value,
+                                            name: selectedMaterial?.name || '',
+                                            unit: selectedMaterial?.unit || '',
+                                          });
+                                        }}
+                                      />
+                                      <InputNumber
+                                        size="small"
+                                        min={0}
+                                        value={material.quantity ?? null}
+                                        onChange={(value) => handleUpdateStepMaterial(index, materialIdx, { quantity: value as number | null })}
+                                        placeholder="SL"
+                                        className="w-20"
+                                      />
+                                      <Button
+                                        size="small"
+                                        type="text"
+                                        danger
+                                        onClick={() => handleRemoveStepMaterial(index, materialIdx)}
+                                      >
+                                        x
+                                      </Button>
+                                    </div>
+                                  ))}
+                                  <Button size="small" type="dashed" icon={<PlusCircleOutlined />} onClick={() => handleAddStepMaterial(index)}>
+                                    Thêm vật tư
+                                  </Button>
                                 </div>
                               </div>
                               {index < selectedSteps.length - 1 && (
@@ -942,18 +1213,19 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
                   </div>
                 )
               }
-            ]} 
-          />
-          <div className="flex justify-end mt-4 border-t pt-4">
-            <Space>
-              <Button onClick={() => {
-                setEditMode(false);
-                setActiveTabKey('1');
-              }}>Hủy</Button>
-              <Button type="primary" icon={<SaveOutlined />} onClick={handleSaveOrder} loading={saving}>Lưu thay đổi</Button>
-            </Space>
+              ]} 
+            />
+            <div className="flex justify-end mt-4 border-t pt-4">
+              <Space>
+                <Button onClick={() => {
+                  setEditMode(false);
+                  setActiveTabKey('1');
+                }}>Hủy</Button>
+                <Button type="primary" icon={<SaveOutlined />} onClick={handleSaveOrder} loading={saving}>Lưu thay đổi</Button>
+              </Space>
+            </div>
           </div>
-        </div>
+        </Form>
       )
     }
   ];
@@ -962,39 +1234,40 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
     <>
       <Modal
         title={
-          <Space>
-            <PrinterOutlined className="text-blue-600" />
-            <span>Chi tiết Lệnh Sản Xuất: {order?.code}</span>
-            <Tag color={order?.status === 'completed' ? 'green' : 'blue'}>{order?.status?.toUpperCase()}</Tag>
-          </Space>
+          <div className="flex items-center justify-between w-full pr-8">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-indigo-100 flex items-center justify-center text-indigo-600">
+                <PrinterOutlined />
+              </div>
+              <div>
+                <div className="text-[11px] uppercase tracking-wider text-slate-400 font-bold">Chi tiết lệnh sản xuất</div>
+                <div className="text-[30px] font-black tracking-tight text-slate-900 leading-none">{order?.code || '---'}</div>
+              </div>
+            </div>
+            <span className={`px-3 py-1 rounded-full text-[11px] font-bold tracking-wide ${getOrderStatusMeta(order?.status).className}`}>
+              {getOrderStatusMeta(order?.status).label}
+            </span>
+          </div>
         }
         open={visible}
         onCancel={onClose}
         footer={[
-          <Button key="close" onClick={onClose}>Đóng</Button>,
-          <Button key="edit" icon={<EditOutlined />} onClick={() => {
+          <Button key="close" onClick={onClose} className="rounded-xl h-10 px-6 font-semibold">Đóng</Button>,
+          <Button key="edit" icon={<EditOutlined />} className="rounded-xl h-10 px-6 font-semibold" onClick={() => {
             setActiveTabKey('5');
-            editForm.setFieldsValue({
-              title: order?.title,
-              customer_id: order?.customer_id,
-              specs: order?.specs,
-              deadline: order?.deadline ? dayjs(order.deadline).format('YYYY-MM-DDTHH:mm') : null,
-              financials: order?.financials,
-              quantity: order?.specs?.quantity,
-              unit_price: order?.financials?.unit_price,
-              vat: order?.financials?.vat,
-              paper_type: order?.specs?.paper_type,
-              size: order?.specs?.size,
-              sides: order?.specs?.sides,
-              unit: order?.specs?.unit
-            });
+            applyEditFormValues();
             setEditMode(true);
           }}>Sửa đơn hàng</Button>,
-          <Button key="print" type="primary" icon={<PrinterOutlined />} onClick={generateLSX_PDF}>Phát lệnh in (LSX)</Button>
+          <Button key="print" type="primary" icon={<PrinterOutlined />} className="rounded-xl h-10 px-6 bg-indigo-600 border-none font-semibold" onClick={generateLSX_PDF}>Phát lệnh in (LSX)</Button>
         ]}
         width={1000}
         centered
         wrapClassName="designer-modal"
+        styles={{
+          header: { paddingBottom: 12, borderBottom: '1px solid #eef2ff' },
+          body: { paddingTop: 14 },
+          footer: { borderTop: '1px solid #f1f5f9', paddingTop: 14, marginTop: 8 },
+        }}
       >
         <Tabs 
           activeKey={activeTabKey} 
@@ -1002,20 +1275,7 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
             setActiveTabKey(key);
             if (key === '5') {
               // Initialize edit form when switching to edit tab
-              editForm.setFieldsValue({
-                title: order?.title,
-                customer_id: order?.customer_id,
-                specs: order?.specs,
-                deadline: order?.deadline ? dayjs(order.deadline).format('YYYY-MM-DDTHH:mm') : null,
-                financials: order?.financials,
-                quantity: order?.specs?.quantity,
-                unit_price: order?.financials?.unit_price,
-                vat: order?.financials?.vat,
-                paper_type: order?.specs?.paper_type,
-                size: order?.specs?.size,
-                sides: order?.specs?.sides,
-                unit: order?.specs?.unit
-              });
+              applyEditFormValues();
               setEditMode(true);
             } else {
               setEditMode(false);
@@ -1023,7 +1283,7 @@ export default function OrderDetailModal({ visible, order, onClose, onRefresh, u
           }} 
           items={tabItems} 
           className="min-h-[500px]" 
-          destroyInactiveTabPane={false}
+          destroyOnHidden={false}
         />
       </Modal>
 

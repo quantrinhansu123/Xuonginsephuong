@@ -101,6 +101,50 @@ export default function WarehousePage() {
       
       if (updateError) throw updateError;
 
+      // Đồng bộ snapshot vật tư cấp phát vào production_orders.material_allocations
+      if (type === 'export' && order_id && mat) {
+        const { data: orderSnapshot, error: orderSnapshotError } = await supabase
+          .from('production_orders')
+          .select('material_allocations')
+          .eq('id', order_id)
+          .single();
+
+        if (orderSnapshotError) throw orderSnapshotError;
+
+        const allocations = Array.isArray(orderSnapshot?.material_allocations)
+          ? [...orderSnapshot.material_allocations]
+          : [];
+
+        const existingIndex = allocations.findIndex((item: any) => item?.material_id === material_id);
+        if (existingIndex >= 0) {
+          const currentQty = Number(allocations[existingIndex]?.quantity || 0);
+          allocations[existingIndex] = {
+            ...allocations[existingIndex],
+            material_id,
+            name: mat.name,
+            unit: mat.unit,
+            quantity: Number((currentQty + Number(quantity)).toFixed(2)),
+          };
+        } else {
+          allocations.push({
+            material_id,
+            name: mat.name,
+            unit: mat.unit,
+            quantity: Number(Number(quantity).toFixed(2)),
+          });
+        }
+
+        const { error: syncError } = await supabase
+          .from('production_orders')
+          .update({
+            material_allocations: allocations,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', order_id);
+
+        if (syncError) throw syncError;
+      }
+
       message.success('Đã cập nhật giao dịch kho');
       setTransactionModalVisible(false);
       form.resetFields();

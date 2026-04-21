@@ -70,6 +70,7 @@ export default function MainLayout({ children, portal }: MainLayoutProps) {
       
       if (accessibleModules.includes('orders')) {
         items.push({ key: '/management/orders', icon: <ShoppingCartOutlined />, label: <Link href="/management/orders">Đơn hàng</Link> });
+        items.push({ key: '/management/tientrinh', icon: <NodeIndexOutlined />, label: <Link href="/management/tientrinh">Tiến trình</Link> });
       }
       
       // Kho - cho phép quản lý xem kho
@@ -145,6 +146,7 @@ export default function MainLayout({ children, portal }: MainLayoutProps) {
                   : path === 'dashboard' ? 'Dashboard'
                   : path === 'crm' ? 'Khách hàng'
                   : path === 'orders' ? 'Đơn hàng'
+                  : path === 'tientrinh' ? 'Tiến trình'
                   : path === 'tasks' ? 'Nhiệm vụ'
                   : path === 'warehouse' ? 'Kho'
                   : path === 'departments' ? 'Bộ phận'

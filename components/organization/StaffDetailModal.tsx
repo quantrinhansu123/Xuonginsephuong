@@ -353,7 +353,7 @@ export default function StaffDetailModal({ visible, staff, departments, roles, o
             </Col>
           </Row>
 
-          <Divider orientation={"left" as any} plain>Lịch sử nhiệm vụ gần đây</Divider>
+          <Divider titlePlacement="left" plain>Lịch sử nhiệm vụ gần đây</Divider>
           <Table 
             columns={taskColumns} 
             dataSource={tasks} 

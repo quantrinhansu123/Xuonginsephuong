@@ -18,7 +18,7 @@ export const themeConfig = {
     borderRadiusSM: 12,
     boxShadowTertiary: '0 4px 20px rgba(0, 0, 0, 0.04)',
     boxShadowSecondary: '0 10px 40px rgba(99, 102, 241, 0.1)',
-    fontFamily: '"Geist", var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+    fontFamily: 'var(--font-roboto), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
   },
   components: {
     Table: {

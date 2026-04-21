@@ -10,19 +10,19 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-roboto);
+  --font-mono: var(--font-roboto);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-inter), var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-roboto), system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
 h1, h2, h3, h4, h5, h6, .ant-typography-title, strong, b, .font-black, .font-bold {
-  font-family: var(--font-inter), sans-serif !important;
+  font-family: var(--font-roboto), sans-serif !important;
 }
 
 /* Premium Surface Utilities */
@@ -58,7 +58,7 @@ h1, h2, h3, h4, h5, h6, .ant-typography-title, strong, b, .font-black, .font-bol
 }
 
 .premium-label {
-  font-family: var(--font-inter), sans-serif !important;
+  font-family: var(--font-roboto), sans-serif !important;
   font-size: 10px;
   font-weight: 800;
   text-transform: uppercase;
