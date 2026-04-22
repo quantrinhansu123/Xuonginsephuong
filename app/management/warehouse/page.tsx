@@ -299,7 +299,7 @@ export default function WarehousePage() {
             columns={[
               { title: 'Thời gian', dataIndex: 'created_at', key: 'created_at', onCell: () => ({ 'data-label': 'Thời gian' } as any), render: (d: string) => <Text className="text-slate-400 font-mono text-xs">{dayjs(d).format('DD/MM HH:mm')}</Text> },
               { title: 'Vật tư', dataIndex: ['materials', 'name'], key: 'material', onCell: () => ({ 'data-label': 'Vật tư' } as any), render: (t: string) => <Text strong className="text-slate-800">{t}</Text> },
-              { title: 'LSX Liên kết', dataIndex: ['production_orders', 'code'], key: 'lsx', onCell: () => ({ 'data-label': 'LSX' } as any), render: (v: string) => v ? <Tag color="indigo" className="font-mono font-bold border-none">{v}</Tag> : <Text className="text-slate-300">---</Text> },
+              { title: 'LSX Liên kết', dataIndex: ['production_orders', 'code'], key: 'lsx', onCell: () => ({ 'data-label': 'LSX' } as any), render: (v: string) => v ? <Tag color="blue" className="font-mono font-bold border-none">{v}</Tag> : <Text className="text-slate-300">---</Text> },
               { title: 'Số lượng', dataIndex: 'quantity', key: 'quantity', align: 'right' as const, onCell: () => ({ 'data-label': 'Số lượng' } as any), render: (q: number, r: any) => <Text strong className={r.type === 'import' ? 'text-emerald-600' : 'text-rose-600'}>{r.type === 'import' ? '+' : '-'}{(q || 0).toLocaleString()}</Text> },
               { title: 'Ghi chú/Lý do', dataIndex: 'reason', key: 'reason', ellipsis: true, onCell: () => ({ 'data-label': 'Lý do' } as any), render: (t: string) => <Text className="text-slate-500 italic">{t}</Text> }
             ]} 
@@ -534,8 +534,8 @@ export default function WarehousePage() {
         .premium-tabs-layout .ant-tabs-nav { margin-bottom: 12px !important; }
         .premium-tabs-layout .ant-tabs-nav-wrap { padding: 0 8px !important; }
         .premium-tabs-layout .ant-tabs-tab { padding: 12px 8px !important; font-size: 11px !important; font-weight: 800 !important; text-transform: uppercase !important; color: #94a3b8 !important; letter-spacing: 1px !important; }
-        .premium-tabs-layout .ant-tabs-tab-active .ant-tabs-tab-btn { color: #6366f1 !important; }
-        .premium-tabs-layout .ant-tabs-ink-bar { background: #6366f1 !important; height: 3px !important; border-radius: 3px 3px 0 0 !important; }
+        .premium-tabs-layout .ant-tabs-tab-active .ant-tabs-tab-btn { color: #0047ab !important; }
+        .premium-tabs-layout .ant-tabs-ink-bar { background: #0047ab !important; height: 3px !important; border-radius: 3px 3px 0 0 !important; }
         .premium-tabs-layout .ant-table-thead > tr > th {
           background: #f8fafc !important;
           color: #64748b !important;

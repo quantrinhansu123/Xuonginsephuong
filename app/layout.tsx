@@ -12,8 +12,8 @@ const roboto = Roboto({
 });
 
 export const metadata: Metadata = {
-  title: "PPMS - Print Production Management System",
-  description: "Advanced Print Production Management System",
+  title: "In Hoà Phát - Hệ thống quản lý in ấn",
+  description: "Hệ thống quản lý sản xuất và vận hành in ấn In Hoà Phát",
 };
 
 export default function RootLayout({

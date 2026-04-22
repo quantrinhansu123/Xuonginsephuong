@@ -202,7 +202,7 @@ export default function ConfigPage() {
                 className="designer-table"
                 columns={[
                   { title: 'Bộ phận', dataIndex: 'name', key: 'name', render: (t) => <Text strong className="text-slate-700">{t}</Text> },
-                  { title: 'Code', dataIndex: 'code', key: 'code', render: (c) => <Tag color="indigo" className="font-mono border-none">{c}</Tag> },
+                  { title: 'Code', dataIndex: 'code', key: 'code', render: (c) => <Tag color="blue" className="font-mono border-none">{c}</Tag> },
                   { title: 'Đầu vào', dataIndex: 'is_entry_point', key: 'entry', render: (v) => v ? <Badge status="success" text="Có" /> : <Badge status="default" text="Không" /> }
                 ]}
                 pagination={false}
@@ -276,7 +276,7 @@ export default function ConfigPage() {
       <Row gutter={[24, 24]}>
         {[
           { title: "NHÂN VIÊN", value: users.length, icon: <TeamOutlined />, color: "blue" },
-          { title: "BỘ PHẬN", value: departments.length, icon: <DeploymentUnitOutlined />, color: "indigo" },
+          { title: "BỘ PHẬN", value: departments.length, icon: <DeploymentUnitOutlined />, color: "blue" },
           { title: "VAI TRÒ", value: roles.length, icon: <SafetyCertificateOutlined />, color: "emerald" }
         ].map((stat, idx) => (
           <Col span={8} key={idx}>

@@ -89,8 +89,8 @@ export default function LoginPage() {
             <div className="bg-blue-600 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-blue-200 shadow-lg">
               <PrinterOutlined className="text-white text-3xl" />
             </div>
-            <Title level={2} className="m-0">PPMS</Title>
-            <Text type="secondary">Hệ thống Quản lý Sản xuất In ấn</Text>
+            <Title level={2} className="m-0">In Hoà Phát</Title>
+            <Text type="secondary">Hệ thống quản lý sản xuất in ấn</Text>
           </div>
 
           <Form

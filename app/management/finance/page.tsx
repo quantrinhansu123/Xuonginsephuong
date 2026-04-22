@@ -798,7 +798,7 @@ export default function FinancePage() {
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                     <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }} />
                     <YAxis axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }} tickFormatter={(v) => `${(v / 1000000).toFixed(1)}M`} />
-                    <Tooltip cursor={{ stroke: '#6366f1', strokeWidth: 2 }} contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }} formatter={(v: any) => v?.toLocaleString() + ' đ'} />
+                    <Tooltip cursor={{ stroke: '#0047ab', strokeWidth: 2 }} contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }} formatter={(v: any) => v?.toLocaleString() + ' đ'} />
                     <Legend iconType="circle" />
                     <Line type="monotone" dataKey="thu" stroke="#10b981" name="Thu" strokeWidth={4} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, strokeWidth: 0 }} />
                     <Line type="monotone" dataKey="chi" stroke="#f43f5e" name="Chi" strokeWidth={4} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6, strokeWidth: 0 }} />
@@ -836,7 +836,7 @@ export default function FinancePage() {
                 <Tooltip cursor={{ fill: '#f8fafc' }} contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }} formatter={(v: any) => v?.toLocaleString() + ' đ'} />
                 <Bar dataKey="balance" fill="url(#barGradient)" radius={[8, 8, 0, 0]}>
                   {getAccountBalanceData().map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.balance >= 0 ? '#6366f1' : '#f43f5e'} />
+                    <Cell key={`cell-${index}`} fill={entry.balance >= 0 ? '#0047ab' : '#d62828'} />
                   ))}
                 </Bar>
               </BarChart>

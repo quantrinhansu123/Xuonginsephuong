@@ -212,8 +212,8 @@ export default function MainLayout({ children, portal }: MainLayoutProps) {
           </div>
           {!collapsed && (
             <div className="ml-4 overflow-hidden">
-              <div className="text-indigo-600 font-black text-xl tracking-tighter leading-none">PPMS</div>
-              <div className="text-[10px] text-slate-400 font-bold tracking-wider uppercase mt-1">Production</div>
+              <div className="text-indigo-600 font-black text-xl tracking-tight leading-none">In Hoà Phát</div>
+              <div className="text-[10px] text-slate-400 font-bold tracking-wider uppercase mt-1">Printing</div>
             </div>
           )}
         </div>
@@ -290,9 +290,9 @@ export default function MainLayout({ children, portal }: MainLayoutProps) {
           transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
         }
         .sidebar-menu .ant-menu-item-selected {
-          background-color: #6366f1 !important;
+          background-color: #0047ab !important;
           color: white !important;
-          box-shadow: 0 10px 20px rgba(99, 102, 241, 0.2) !important;
+          box-shadow: 0 10px 20px rgba(0, 71, 171, 0.25) !important;
         }
         .sidebar-menu .ant-menu-item-selected a { color: white !important; }
         .sidebar-menu .ant-menu-item:hover:not(.ant-menu-item-selected) {

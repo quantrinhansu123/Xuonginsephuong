@@ -3,11 +3,11 @@ import { ConfigProvider, theme } from 'antd';
 
 export const themeConfig = {
   token: {
-    colorPrimary: '#6366f1', // Indigo 500
+    colorPrimary: '#0047ab', // Cobalt Blue
     colorSuccess: '#10b981', // Emerald 500
     colorWarning: '#f59e0b', // Amber 500
-    colorError: '#ef4444', // Rose 500
-    colorInfo: '#3b82f6', // Blue 500
+    colorError: '#d62828', // Brand Red
+    colorInfo: '#1f6feb', // Cobalt Info
     colorText: '#1e293b',
     colorTextSecondary: '#64748b',
     colorBgBase: '#f8fafc',
@@ -17,7 +17,7 @@ export const themeConfig = {
     borderRadiusLG: 20,
     borderRadiusSM: 12,
     boxShadowTertiary: '0 4px 20px rgba(0, 0, 0, 0.04)',
-    boxShadowSecondary: '0 10px 40px rgba(99, 102, 241, 0.1)',
+    boxShadowSecondary: '0 10px 40px rgba(0, 71, 171, 0.14)',
     fontFamily: 'var(--font-roboto), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
   },
   components: {
@@ -35,7 +35,7 @@ export const themeConfig = {
       contentFontSize: 14,
       fontWeight: 600,
       controlHeight: 42,
-      primaryShadow: '0 8px 20px rgba(99, 102, 241, 0.25)',
+      primaryShadow: '0 8px 20px rgba(0, 71, 171, 0.28)',
       defaultShadow: '0 2px 8px rgba(0,0,0,0.05)',
     },
     Card: {
@@ -55,9 +55,9 @@ export const themeConfig = {
     },
     Tabs: {
       itemColor: '#94a3b8',
-      itemSelectedColor: '#6366f1',
-      itemHoverColor: '#4f46e5',
-      inkBarColor: '#6366f1',
+      itemSelectedColor: '#0047ab',
+      itemHoverColor: '#003a8c',
+      inkBarColor: '#0047ab',
       titleFontSize: 15,
       horizontalItemPadding: '12px 16px',
     },

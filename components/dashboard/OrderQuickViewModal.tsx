@@ -113,7 +113,7 @@ export default function OrderQuickViewModal({
   const getStatusColor = (status: string) => {
     const colors: any = {
       done: 'emerald',
-      in_progress: 'indigo',
+      in_progress: 'blue',
       ready: 'sky',
       issue: 'rose',
       on_hold: 'amber',
@@ -179,7 +179,7 @@ export default function OrderQuickViewModal({
                     type="circle" 
                     percent={calculateProgress()} 
                     strokeColor={{
-                      '0%': '#6366f1',
+                      '0%': '#0047ab',
                       '100%': '#10b981',
                     }}
                     trailColor="rgba(255,255,255,0.1)"
@@ -416,7 +416,7 @@ export default function OrderQuickViewModal({
               .slice(0, 10)
               .map(task => ({
                 color: task.status === 'done' ? '#10b981' : 
-                       task.status === 'issue' ? '#ef4444' : '#6366f1',
+                       task.status === 'issue' ? '#d62828' : '#0047ab',
                 children: (
                   <div className="bg-white p-4 rounded-[20px] shadow-sm border border-slate-50 mb-4 transition-all hover:translate-x-1">
                     <div className="flex justify-between items-center mb-1">
@@ -525,7 +525,7 @@ export default function OrderQuickViewModal({
         .premium-modal .ant-modal-content { padding: 0 !important; border-radius: 32px !important; overflow: hidden; }
         .premium-modal .ant-modal-header { padding: 32px 32px 24px 32px !important; margin: 0 !important; }
         .premium-steps .ant-steps-item-title { width: 100%; }
-        .premium-steps .ant-steps-item-process .ant-steps-item-icon { background: #6366f1; border-color: #6366f1; }
+        .premium-steps .ant-steps-item-process .ant-steps-item-icon { background: #0047ab; border-color: #0047ab; }
         @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
         .animate-in { animation: slideIn 0.3s ease-out; }
       `}</style>

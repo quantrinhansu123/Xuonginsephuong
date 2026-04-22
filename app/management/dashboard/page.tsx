@@ -331,7 +331,7 @@ export default function DashboardPage() {
             } else if (isActive) {
               colorClass = 'bg-gradient-to-r from-indigo-500 to-indigo-600';
               icon = <SyncOutlined spin className="text-[10px]" />;
-              shadow = '0 0 15px rgba(99,102,241,0.4)';
+              shadow = '0 0 15px rgba(0,71,171,0.42)';
             } else if (isIssue) {
               colorClass = 'bg-gradient-to-r from-rose-500 to-rose-600';
               icon = <WarningOutlined className="text-[10px] animate-pulse" />;
@@ -351,7 +351,7 @@ export default function DashboardPage() {
                     {isActive && <div className="text-indigo-300 font-bold mt-1 animate-pulse">ĐANG THỰC HIỆN...</div>}
                   </div>
                 }
-                color={isActive ? '#4f46e5' : isIssue ? '#e11d48' : '#0f172a'}
+                color={isActive ? '#003a8c' : isIssue ? '#d62828' : '#0f172a'}
               >
                 <div 
                   className={`
@@ -397,7 +397,7 @@ export default function DashboardPage() {
           onClick={() => { setSelectedOrder(record); setQuickViewModalVisible(true); }}
         >
           <div className="flex items-center gap-3">
-            <div className="w-2.5 h-2.5 rounded-full bg-indigo-600 shadow-[0_0_12px_rgba(99,102,241,0.8)] animate-pulse" />
+            <div className="w-2.5 h-2.5 rounded-full bg-indigo-600 shadow-[0_0_12px_rgba(0,71,171,0.8)] animate-pulse" />
             <Text className="text-[15px] font-black text-slate-900 font-mono tracking-tighter group-hover:text-indigo-600 transition-colors">
               {text}
             </Text>

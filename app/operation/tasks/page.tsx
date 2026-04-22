@@ -193,7 +193,7 @@ export default function TasksPage() {
           type="primary" 
           icon={<EyeOutlined />} 
           onClick={() => { setSelectedTask(record); setActionModalVisible(true); }}
-          className={`font-black rounded-xl border-none shadow-lg h-10 w-full sm:w-auto px-6 ${record.department_id === user.department_id ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100' : 'bg-rose-600 hover:bg-rose-700 shadow-rose-100'}`}
+          className={`font-black rounded-xl border-none shadow-lg h-10 w-full sm:w-auto px-6 ${record.department_id === user.department_id ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-100'}`}
         >
           {record.department_id === user.department_id ? 'XỬ LÝ' : 'VẬT TƯ'}
         </Button>

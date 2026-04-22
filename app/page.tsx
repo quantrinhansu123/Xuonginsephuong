@@ -23,7 +23,7 @@ export default function Home() {
   return (
     <div className="flex items-center justify-center min-h-screen">
       <div className="animate-pulse text-blue-600 font-bold text-xl">
-        PPMS Loading...
+        In Hoà Phát Loading...
       </div>
     </div>
   );
