@@ -84,9 +84,10 @@ export default function TaskActionModal({ visible, task, onClose, onRefresh }: T
   }, [visible, task]);
 
   useEffect(() => {
-    const currentUser = getUser();
-    setUser(currentUser);
-  }, []);
+    if (visible) {
+      setUser(getUser());
+    }
+  }, [visible]);
 
   // Fetch machines when task changes
   useEffect(() => {
@@ -127,10 +128,13 @@ export default function TaskActionModal({ visible, task, onClose, onRefresh }: T
     }
   }, [task]);
 
+  const getConfirmerName = (u: User | null) =>
+    (u?.full_name?.trim() || u?.username || '—') as string;
+
   const handleStatusChange = async (newStatus: string, additionalData: any = {}) => {
     setSubmitting(true);
     try {
-      const user = await getUser();
+      const sessionUser = getUser();
       const now = new Date().toISOString();
       const updates: any = { 
         status: newStatus,
@@ -141,8 +145,8 @@ export default function TaskActionModal({ visible, task, onClose, onRefresh }: T
       if (newStatus === 'in_progress' && task.status === 'ready') {
         updates.start_time = now;
         updates.kpi_start_time = now;
-        if (user) {
-          updates.assigned_to = user.id;
+        if (sessionUser) {
+          updates.assigned_to = sessionUser.id;
         }
       }
 
@@ -200,7 +204,9 @@ export default function TaskActionModal({ visible, task, onClose, onRefresh }: T
         }
       }
 
-      message.success(`Đã cập nhật: ${newStatus.toUpperCase()}`);
+      message.success(
+        `Đã cập nhật: ${newStatus.toUpperCase()} — Người xác nhận: ${getConfirmerName(sessionUser)}`
+      );
       onRefresh();
       onClose();
     } catch (err) {
@@ -214,6 +220,7 @@ export default function TaskActionModal({ visible, task, onClose, onRefresh }: T
   const handleMaterialVerify = async (values: any, shouldHold: boolean = false) => {
     setSubmitting(true);
     try {
+      const sessionUser = getUser();
       const shortageDetected = values.material_received_qty < values.material_requested_qty;
       const updates: any = {
         material_requested_qty: values.material_requested_qty,
@@ -233,7 +240,12 @@ export default function TaskActionModal({ visible, task, onClose, onRefresh }: T
       const { error } = await supabase.from('tasks').update(updates).eq('id', task.id);
       if (error) throw error;
 
-      message.success(shouldHold ? 'Đã xác nhận HOÃN HỢP LỆ - KPI chuyển sang Kho 2' : 'Đã cập nhật số lượng vật tư');
+      const who = getConfirmerName(sessionUser);
+      message.success(
+        shouldHold
+          ? `Đã xác nhận HOÃN HỢP LỆ - KPI chuyển sang Kho 2 — Người xác nhận: ${who}`
+          : `Đã cập nhật số lượng vật tư — Người xác nhận: ${who}`
+      );
       onRefresh();
       onClose();
     } catch (err) {
@@ -247,6 +259,7 @@ export default function TaskActionModal({ visible, task, onClose, onRefresh }: T
   const handleReleaseHold = async (values: any) => {
     setSubmitting(true);
     try {
+      const sessionUser = getUser();
       const now = new Date().toISOString();
       
       const holdDuration = task.hold_start_time 
@@ -259,7 +272,7 @@ export default function TaskActionModal({ visible, task, onClose, onRefresh }: T
         total_hold_seconds: (task.total_hold_seconds || 0) + holdDuration,
         material_shortage: false,
         material_received_qty: values.provided_qty,
-        issue_log: task.issue_log + ` | Đã cấp vật tư bởi Kho 2: ${values.provided_qty}`,
+        issue_log: `${task.issue_log} | Đã cấp vật tư bởi Kho 2: ${values.provided_qty} (Xác nhận: ${getConfirmerName(sessionUser)})`,
         kpi_transferred_to: null,
         kpi_transferred_at: null,
         updated_at: now
@@ -268,7 +281,9 @@ export default function TaskActionModal({ visible, task, onClose, onRefresh }: T
       const { error } = await supabase.from('tasks').update(updates).eq('id', task.id);
       if (error) throw error;
 
-      message.success('Đã cấp vật tư và trả KPI về bộ phận gốc');
+      message.success(
+        `Đã cấp vật tư và trả KPI về bộ phận gốc — Người xác nhận: ${getConfirmerName(sessionUser)}`
+      );
       onRefresh();
       onClose();
     } catch (err) {
@@ -281,9 +296,11 @@ export default function TaskActionModal({ visible, task, onClose, onRefresh }: T
   const handleWasteReport = async (values: any) => {
     setSubmitting(true);
     try {
+      const sessionUser = getUser();
       await supabase.from('inventory_logs').insert([{
         task_id: task.id,
         order_id: task.order_id,
+        user_id: sessionUser?.id,
         quantity: values.quantity,
         type: 'waste',
         reason: `Bù hao tại ${task.departments?.name}: ${values.reason}`,
@@ -291,7 +308,7 @@ export default function TaskActionModal({ visible, task, onClose, onRefresh }: T
         created_at: new Date().toISOString()
       }]);
 
-      message.success('Đã ghi nhận bù hao');
+      message.success(`Đã ghi nhận bù hao — Người xác nhận: ${getConfirmerName(sessionUser)}`);
       setWasteMode(false);
       wasteForm.resetFields();
     } catch (err) {
@@ -626,7 +643,18 @@ export default function TaskActionModal({ visible, task, onClose, onRefresh }: T
       centered
       className="task-modal-v2"
     >
-      <Tabs defaultActiveKey="1" items={tabItems} className="mt-4" destroyOnHidden />
+      {user && (
+        <div className="px-1 pt-1">
+          <Text type="secondary" className="text-xs block">
+            Người xác nhận:{' '}
+            <Text strong className="text-slate-800">
+              {user.full_name || user.username}
+              {user.username && (user.full_name || '') && user.username !== user.full_name ? ` (@${user.username})` : ''}
+            </Text>
+          </Text>
+        </div>
+      )}
+      <Tabs defaultActiveKey="1" items={tabItems} className="mt-2" destroyOnHidden />
 
       <OrderDetailModal 
         visible={orderDetailVisible} 

@@ -21,6 +21,7 @@ import {
   EyeOutlined
 } from '@ant-design/icons';
 import { supabase } from '@/lib/supabase';
+import { getUser } from '@/lib/auth';
 import dayjs from 'dayjs';
 import A4Calculator from '@/components/warehouse/A4Calculator';
 import MaterialDetailModal from '@/components/warehouse/MaterialDetailModal';
@@ -41,6 +42,7 @@ export default function WarehousePage() {
   const [selectedMaterial, setSelectedMaterial] = useState<any>(null);
   const [form] = Form.useForm();
   const [exportType, setExportType] = useState('import');
+  const [sessionUser, setSessionUser] = useState<ReturnType<typeof getUser>>(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -68,11 +70,19 @@ export default function WarehousePage() {
   };
 
   useEffect(() => {
+    setSessionUser(getUser());
     fetchData();
   }, []);
 
+  useEffect(() => {
+    if (transactionModalVisible) {
+      setSessionUser(getUser());
+    }
+  }, [transactionModalVisible]);
+
   const handleTransaction = async (values: any) => {
     try {
+      const u = getUser();
       const { quantity, material_id, type, reason, order_id } = values;
       const mat = materials.find(m => m.id === material_id);
       
@@ -85,6 +95,7 @@ export default function WarehousePage() {
         .insert([{
           material_id,
           order_id: type === 'export' ? order_id : null,
+          user_id: u?.id,
           quantity,
           type,
           reason: type === 'export' ? `Cấp phát cho LSX: ${orders.find(o => o.id === order_id)?.code}. ${reason || ''}` : reason,
@@ -100,7 +111,8 @@ export default function WarehousePage() {
       
       if (updateError) throw updateError;
 
-      message.success('Đã cập nhật giao dịch kho');
+      const who = (u?.full_name?.trim() || u?.username) ?? '—';
+      message.success(`Đã cập nhật giao dịch kho — Người xác nhận: ${who}`);
       setTransactionModalVisible(false);
       form.resetFields();
       fetchData();
@@ -276,6 +288,11 @@ export default function WarehousePage() {
           <Form.Item name="reason" label="Ghi chú thêm">
             <Input.TextArea rows={2} placeholder="Nội dung diễn giải..." />
           </Form.Item>
+          {sessionUser && (
+            <Text type="secondary" className="text-xs block mb-2">
+              Người xác nhận: <Text strong>{sessionUser.full_name || sessionUser.username}</Text>
+            </Text>
+          )}
           <div className="flex justify-end gap-3 pt-4">
             <Button onClick={() => setTransactionModalVisible(false)} size="large">Hủy</Button>
             <Button type="primary" htmlType="submit" size="large" className="bg-blue-600 px-8">Xác nhận</Button>

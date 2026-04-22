@@ -5,6 +5,7 @@ import { Button, Card, Dropdown, Empty, Input, Modal, Tag, Typography, message }
 import type { MenuProps } from 'antd';
 import { EllipsisOutlined } from '@ant-design/icons';
 import { supabase } from '@/lib/supabase';
+import { getUser } from '@/lib/auth';
 import OrderDetailModal from '@/components/orders/OrderDetailModal';
 import dayjs from 'dayjs';
 
@@ -21,8 +22,10 @@ export default function TienTrinhPage() {
   const [holdNote, setHoldNote] = useState('');
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [sessionUser, setSessionUser] = useState<ReturnType<typeof getUser>>(null);
 
   useEffect(() => {
+    setSessionUser(getUser());
     fetchData();
   }, []);
 
@@ -160,7 +163,9 @@ export default function TienTrinhPage() {
         .eq('id', task.id);
 
       if (error) throw error;
-      messageApi.success('Đã cập nhật trạng thái công việc');
+      const u = getUser();
+      const who = (u?.full_name?.trim() || u?.username) ?? '—';
+      messageApi.success(`Đã cập nhật trạng thái công việc — Người xác nhận: ${who}`);
       await fetchData();
     } catch (err) {
       console.error(err);
@@ -173,6 +178,7 @@ export default function TienTrinhPage() {
   const handleConfirmTask = async (task: any) => {
     setActingTaskId(task.id);
     try {
+      const u = getUser();
       const now = new Date().toISOString();
       const responseMinutes = task.ready_at
         ? Math.max(0, dayjs(now).diff(dayjs(task.ready_at), 'minute'))
@@ -183,6 +189,7 @@ export default function TienTrinhPage() {
           status: 'in_progress',
           start_time: task.start_time || now,
           response_time_minutes: task.start_time ? task.response_time_minutes : responseMinutes,
+          assigned_to: u?.id ?? task.assigned_to,
           updated_at: now,
         })
         .eq('id', task.id);
@@ -206,7 +213,10 @@ export default function TienTrinhPage() {
         if (nextError) throw nextError;
       }
 
-      messageApi.success('Đã xác nhận, ghi nhận thời gian xác nhận và giao bước tiếp theo');
+      const who = (u?.full_name?.trim() || u?.username) ?? '—';
+      messageApi.success(
+        `Đã xác nhận bởi ${who}. Đã ghi nhận thời gian xác nhận và giao bước tiếp theo`
+      );
       await fetchData();
     } catch (err) {
       console.error(err);
@@ -219,6 +229,7 @@ export default function TienTrinhPage() {
   const handleCompleteTask = async (task: any) => {
     setActingTaskId(task.id);
     try {
+      const u = getUser();
       const now = new Date().toISOString();
 
       const { error: currentError } = await supabase
@@ -256,7 +267,8 @@ export default function TienTrinhPage() {
         if (orderError) throw orderError;
       }
 
-      messageApi.success('Đã hoàn thành bước và giao bước tiếp theo');
+      const who = (u?.full_name?.trim() || u?.username) ?? '—';
+      messageApi.success(`Đã hoàn thành bước và giao bước tiếp theo — Người xác nhận: ${who}`);
       await fetchData();
     } catch (err) {
       console.error(err);
@@ -429,6 +441,17 @@ export default function TienTrinhPage() {
         cancelText="Đóng"
       >
         <Text className="text-slate-600 text-sm">Nhập ghi chú lý do hoãn (bắt buộc):</Text>
+        {sessionUser && (
+          <Text type="secondary" className="text-xs block mt-1">
+            Xác nhận hoãn sẽ ghi theo:{' '}
+            <Text strong>
+              {sessionUser.full_name || sessionUser.username}
+              {sessionUser.username && sessionUser.full_name && sessionUser.username !== sessionUser.full_name
+                ? ` (@${sessionUser.username})`
+                : ''}
+            </Text>
+          </Text>
+        )}
         <Input.TextArea
           className="mt-2"
           rows={4}

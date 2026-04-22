@@ -17,6 +17,7 @@ import {
   MinusOutlined
 } from '@ant-design/icons';
 import { supabase } from '@/lib/supabase';
+import { getUser } from '@/lib/auth';
 import dayjs from 'dayjs';
 
 const { Text, Title } = Typography;
@@ -38,6 +39,19 @@ export default function MaterialDetailModal({ visible, material, onClose, onRefr
   const [deleting, setDeleting] = useState(false);
   const [adjustModalVisible, setAdjustModalVisible] = useState(false);
   const [adjustForm] = Form.useForm();
+  const [sessionUser, setSessionUser] = useState<ReturnType<typeof getUser>>(null);
+
+  useEffect(() => {
+    if (visible) {
+      setSessionUser(getUser());
+    }
+  }, [visible]);
+
+  useEffect(() => {
+    if (adjustModalVisible) {
+      setSessionUser(getUser());
+    }
+  }, [adjustModalVisible]);
 
   useEffect(() => {
     if (visible && material) {
@@ -124,6 +138,7 @@ export default function MaterialDetailModal({ visible, material, onClose, onRefr
   const handleAdjustStock = async (values: any) => {
     setSaving(true);
     try {
+      const u = getUser();
       const adjustment = values.type === 'import' ? values.quantity : -values.quantity;
       const newStock = material.stock_quantity + adjustment;
 
@@ -146,6 +161,7 @@ export default function MaterialDetailModal({ visible, material, onClose, onRefr
         .from('inventory_logs')
         .insert([{
           material_id: material.id,
+          user_id: u?.id,
           quantity: values.quantity,
           type: values.type,
           reason: values.reason || `Điều chỉnh tồn kho: ${values.type === 'import' ? 'Nhập' : 'Xuất'}`,
@@ -154,7 +170,8 @@ export default function MaterialDetailModal({ visible, material, onClose, onRefr
       
       if (logError) throw logError;
 
-      message.success('Đã điều chỉnh tồn kho');
+      const who = (u?.full_name?.trim() || u?.username) ?? '—';
+      message.success(`Đã điều chỉnh tồn kho — Người xác nhận: ${who}`);
       setAdjustModalVisible(false);
       adjustForm.resetFields();
       onRefresh?.();
@@ -403,6 +420,11 @@ export default function MaterialDetailModal({ visible, material, onClose, onRefr
           <Form.Item name="reason" label="Lý do">
             <TextArea rows={2} placeholder="Ghi chú lý do điều chỉnh..." />
           </Form.Item>
+          {sessionUser && (
+            <Text type="secondary" className="text-xs block mb-2">
+              Người xác nhận: <Text strong>{sessionUser.full_name || sessionUser.username}</Text>
+            </Text>
+          )}
           <div className="flex justify-end gap-2">
             <Button onClick={() => setAdjustModalVisible(false)}>Hủy</Button>
             <Button type="primary" htmlType="submit" loading={saving}>Xác nhận</Button>
